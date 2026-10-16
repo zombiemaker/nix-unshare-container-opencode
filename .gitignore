@@ -1,3 +1,10 @@
 .*
 .*/
 !.gitignore
+!.emptydir
+!.builds
+!.container-user-home
+!.downloads
+!.opencode
+!.temp
+!.vscode
