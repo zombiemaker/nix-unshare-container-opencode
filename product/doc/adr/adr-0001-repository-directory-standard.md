@@ -2,7 +2,7 @@
 
 You MUST organize all generated code, files, data, and documentation according to the explicit top-level boundaries, tri-domain subdirectories, toolchain/runtime layouts, component structures, and environment lifecycles defined below. Never mix spaces or drift from this schema.
 
-### 1. Top-Level Workspace Domains
+### 1. Top-Level Workspace Directories
 The root of the workspace is divided into three mutually exclusive top-level directories. Every generated asset must resolve into exactly one of these scopes:
 
 * **`product/` (Product Content):** All core application source code, product configurations, domain assets, data, and user-facing or technical documentation.

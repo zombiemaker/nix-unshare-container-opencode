@@ -1,0 +1,11 @@
+services:
+  web:
+    image: docker.io/library/nginx:alpine
+    ports:
+      - "8888:80"
+    depends_on:
+      - app
+
+  app:
+    image: docker.io/library/alpine
+    command: ["watch", "-n", "1", "echo", "App container is active!"]

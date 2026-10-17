@@ -1,0 +1,18 @@
+# shell.nix
+{ pkgs ? import <nixpkgs> {} }:
+
+let
+  fhsEnv = pkgs.buildFHSEnv {
+    name = "opencode-fhs";
+    targetPkgs = pkgs: with pkgs; [
+      nodejs
+      buildah
+      kubectl
+      git
+      shadow # For subuid/subgid handling if needed
+    ];
+  };
+in
+  pkgs.mkShell {
+    buildInputs = [ pkgs.bubblewrap fhsEnv ];
+  }

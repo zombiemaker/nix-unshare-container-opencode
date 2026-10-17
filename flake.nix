@@ -19,10 +19,22 @@
     pkgs = import nixpkgs { inherit system; };
     zm_pixi = zm_pixi_repo.v0_75_0.machine_code.x86_64.linux.musl_libc;
     
+    agentTools_nixos = [
+      pkgs.nix
+      pkgs.stdenv
+    ];
+
     agentTools_os = [
       pkgs.binutils # readelf
       pkgs.coreutils
       pkgs.file
+    ];
+
+    agentTools_osSystem_containers = [
+      pkgs.img
+      pkgs.buildah
+      pkgs.podman
+      pkgs.skopeo
     ];
 
     agentTools_osSystem_processes = [
@@ -51,7 +63,6 @@
       pkgs.gnutls
       pkgs.openssl
     ];
-
 
     agentTools_data_text = [
       pkgs.ast-grep
@@ -85,9 +96,18 @@
       zm_pixi
     ];
 
-    agentTools_http = [
-      pkgs.curl
-      pkgs.wget
+    agentTools_data_avro = [
+      pkgs.avro-tools
+      pkgs.avro-c
+      pkgs.avro-cpp
+      pkgs.python314Packages.avro
+      pkgs.python314Packages.fastavro
+    ];
+    
+    agentTools_data_flatbuffers = [
+      pkgs.flatbuffers
+      pkgs.parquet-tools
+      pkgs.nail-parquet
     ];
 
     agentTools_data_git = [
@@ -95,11 +115,21 @@
       pkgs.delta
     ];
 
+    agentTools_data_parquet = [
+      pkgs.parquet-tools
+      pkgs.nail-parquet
+    ];
+
     agentTools_data_store = [
       pkgs.duckdb
       pkgs.sqlite
       pkgs.ladybugdb
       # rocksdb?
+    ];
+
+    agentTools_http = [
+      pkgs.curl
+      pkgs.wget
     ];
 
     agentTools_machine_task = [
@@ -161,7 +191,7 @@
     ];
 
     agentTools_codeStack_csharp_10_dotnet = [
-      pkgs.dotnet-runtime_10
+      # pkgs.dotnet-runtime_10
       pkgs.dotnet-sdk_10
       pkgs.omnisharp-roslyn
       pkgs.nuget
@@ -210,6 +240,9 @@
       # pkgs.temurin-bin-25
       # pkgs.temurin-jre-bin-25
       pkgs.javaPackages.compiler.temurin-bin.jdk-25
+      pkgs.gradle_9
+      pkgs.gradle-completion
+      pkgs.gradle-dependency-tree-diff
     ];
 
     agentTools_codeStack_javaScript = [];
@@ -279,13 +312,34 @@
     ];
 
     agentTools_codeStack_wasm_webBrowser = [];
-    
+
+    ###############################
+    # Cloud Stack Agent Tools
     ###############################
 
+    agentTools_cloudStack_aws = [];
+
+    agentTools_cloudStack_azure = [];
+
+    agentTools_cloudStack_cloudFlare = [];
+
+    agentTools_cloudStack_digitalOcean = [];
+
+    agentTools_cloudStack_googleCloud = [];
+
+    agentTools_cloudStack_vmware = [];
+
+
+    agentTools_cloudStack_kubernetes = [
+      pkgs.k9s
+      pkgs.kubectl
+    ];
     
 
     # ACTION: Select derivations groups to make available to AI agent harness
-    agentTools_Selected = agentTools_os ++
+    agentTools_Selected =  agentTools_nixos ++
+      agentTools_os ++
+      agentTools_osSystem_containers ++
       agentTools_osSystem_processes ++
       agentTools_osSystem_files ++
       agentTools_osSystem_networks ++
@@ -301,10 +355,20 @@
       agentTools_codeStack_csharp_10_dotnet ++
       agentTools_codeStack_go_1_27_standard ++
       agentTools_codeStack_html_css ++
+      agentTools_codeStack_java_25_eclipseTemurin ++
+      agentTools_codeStack_javaScript_nodejs ++
+      agentTools_codeStack_python_3_14_cpython ++
       agentTools_codeStack_python_3_11_pypy ++
       agentTools_codeStack_rust ++
       agentTools_codeStack_wasm ++
-      agentTools_codeStack_wasm_wasi;
+      agentTools_codeStack_wasm_wasi ++
+      agentTools_cloudStack_kubernetes;
+
+    ###############################################################################
+    # Common Variables
+    ###############################################################################
+
+
 
     ###############################################################################
     # NixOS-Native Linux ELF
@@ -321,9 +385,23 @@
     bwrapShellWrapperLinuxNixOs = pkgs.writeShellScriptBin "containerized-agent-linux_nixos" ''
       set -eo pipefail
 
-      # Default values
-      MODE="server"
+      # Default script variable values
       DEBUG=false
+      MODE="server"
+      RANDOM_HOME_HOST_NAME=false
+      CONTAINER_TEMP_HOST_PATH="./.temp"
+      CONTAINER_FS_HOST_PATH="$CONTAINER_TEMP_HOST_PATH/container-fs"
+      CONTAINER_ETC_HOST_PATH="$CONTAINER_FS_HOST_PATH/etc"
+      CONTAINER_HOME_HOST_PATH="$CONTAINER_FS_HOST_PATH/home"
+      CONTAINER_WORKSPACE_HOST_PATH="$CONTAINER_FS_HOST_PATH/workspace"
+      CONTAINER_WORKSPACE_BUILDS_HOST_PATH="./.builds"
+      CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH="./.downloads"
+      CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH="./external"
+      CONTAINER_WORKSPACE_OPENCODE_HOST_PATH="./.opencode"
+      CONTAINER_WORKSPACE_PROCESS_HOST_PATH="./process"
+      CONTAINER_WORKSPACE_PRODUCT_HOST_PATH="./product"
+      CONTAINER_USER_NAME="app-runner"
+      CONTAINER_USER_HOME_HOST_PATH_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME"
 
       # Display usage helper
       usage() {
@@ -345,6 +423,9 @@
             MODE="''${2,,}"
             shift 2
             ;;
+          --random-home-name)
+            RANDOM_HOME_HOST_NAME=true
+            ;;
           --debug)
             DEBUG=true
             ;;
@@ -358,39 +439,138 @@
             ;;
         esac
       done
-
-
+      
+      
       # Evaluate the list and bakes a standard space-separated Bash array definition right here
       mapfile -t NIX_STORE_PATHS < "${agentClosureLinuxNixOs}/store-paths"
 
+
+      # Container /etc/passwd and /etc/group      
+      mkdir -p "$CONTAINER_ETC_HOST_PATH"      
+      RUN_UID=$(id -u)
+      RUN_GID=$(id -g)
+
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/passwd"
+      root:x:0:0:root:/root:/bin/bash
+      $CONTAINER_USER_NAME:x:$RUN_UID:$RUN_GID:$CONTAINER_USER_NAME:/home/$CONTAINER_USER_NAME:/bin/bash
+      EOF
+
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/group"
+      root:x:0:
+      $CONTAINER_USER_NAME:x:$RUN_GID:
+      EOF
+
+
+      # Container /etc/subuid and /etc/subgid
+      touch "$CONTAINER_ETC_HOST_PATH/subuid" "$CONTAINER_ETC_HOST_PATH/subgid"
+
+
+      # Container /etc/containers
+      mkdir -p "$CONTAINER_ETC_HOST_PATH/containers"
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/containers.conf"
+      [engine]
+      # Explicitly forces chroot behavior at the engine layer
+      isolation = "chroot"
+      # Strips the engine from trying to escalate or alter supplemental group privileges
+      infra_command = ""
+      EOF
+
+
+      # Container user home
+      if [[ "$RANDOM_HOME_HOST_NAME" == "true" ]]; then
+        CONTAINER_USER_HOME_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME-$SRANDOM"
+      fi
+
+      mkdir -p "$CONTAINER_USER_HOME_HOST_PATH"
+
+      
+      # Container user configs for Podman, Buildah, etc.
+      mkdir -p "$CONTAINER_USER_HOME_HOST_PATH/.config/containers"
+      cat <<EOF > "$CONTAINER_USER_HOME_HOST_PATH/.config/containers/storage.conf"
+      [storage]
+      driver = "vfs"
+      EOF
+
+      # Create a local storage.conf to force Buildah to use the VFS driver
+      # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
+      cat <<EOF > "$CONTAINER_USER_HOME_HOST_PATH/config/storage.conf"
+      [storage]
+      driver = "vfs"
+      runroot = "/tmp/runroot"
+      graphroot = "/var/lib/containers/storage"
+      EOF
+
+
       # Build the bwrap execution command
       BWRAP_ARGS=(
+        --die-with-parent
         --clearenv                                 # Strip malicious host environment variables
         --unshare-all                              # Unshare IPC, PID, User, UTS, and Cgroup namespaces
         --share-net                                # Safely allow network traffic for LLM API calls
+        --uid $(id -u)
+        --gid $(id -g)
         
         # Setup core filesystem structural nodes
         --proc /proc
         --dev /dev
         --tmpfs /run
-        --tmpfs /tmp
         --tmpfs /nix/store
         --dir /bin
-        --dir /home/app_runner
+        --dir /usr/bin
         --ro-bind /etc/resolv.conf /etc/resolv.conf
         --ro-bind /etc/ssl/certs /etc/ssl/certs
         --setenv TERM "''${TERM:-xterm-256color}"
-        --setenv HOME "/home/app_runner"
+
+        # tmp directory
+        --bind "$CONTAINER_TEMP_HOST_PATH" /tmp
         --setenv TEMP "/tmp"
         --setenv TEMPDIR "/tmp"
         --setenv TMP "/tmp"
         --setenv TMPDIR "/tmp"
+
+        # Container user
+        --dir /home/app_runner
+        --bind "$CONTAINER_USER_HOME_HOST_PATH" /home/app_runner
+        --setenv HOME "/home/app_runner"
         
         # Mount our isolated workspace explicitly as Read/Write
         --dir /workspace
-        --bind ./process /workspace/process
-        --bind ./product /workspace/product
+        --bind ./.git /workspace/.git
+        --ro-bind "$CONTAINER_WORKSPACE_OPENCODE_HOST_PATH" /workspace/.opencode
+        --bind "$CONTAINER_WORKSPACE_BUILDS_HOST_PATH" /workspace/builds
+        --bind "$CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH" /workspace/downloads
+        --bind "$CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH" /workspace/external
+        --bind "$CONTAINER_WORKSPACE_PROCESS_HOST_PATH" /workspace/process
+        --bind "$CONTAINER_WORKSPACE_PRODUCT_HOST_PATH" /workspace/product
         --chdir /workspace
+
+        # for container tools (podman, buildah)
+        --cap-add CAP_SYS_ADMIN
+        --cap-add CAP_SETUID
+        --cap-add CAP_SETGID
+        --dev-bind /dev/fuse /dev/fuse
+        --ro-bind "$CONTAINER_ETC_HOST_PATH/passwd" /etc/passwd
+        --ro-bind "$CONTAINER_ETC_HOST_PATH/group" /etc/group
+        --ro-bind "$CONTAINER_ETC_HOST_PATH/subuid" /etc/subuid
+        --ro-bind "$CONTAINER_ETC_HOST_PATH/subgid" /etc/subgid
+        --setenv BUILDAH_ISOLATION "chroot"
+
+        # TROUBLESHOOTING
+        # --ro-bind /lib64 /lib64
+        # --setenv CC "clang"
+        # --setenv CXX "clang++"
+        # --setenv C_INCLUDE_PATH "$C_INCLUDE_PATH"
+        # --setenv CPLUS_INCLUDE_PATH "$CPLUS_INCLUDE_PATH"
+        # --setenv LD "$LD"
+        # --setenv LD_LIBRARY_PATH "$LD_LIBRARY_PATH"
+        # --setenv NIX_BINTOOLS_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu "$NIX_BINTOOLS_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu"
+        # --setenv NIX_CC_FOR_TARGET "$NIX_CC_FOR_TARGET"
+        # --setenv NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu "$NIX_CC_WRAPPER_TARGET_HOST_x86_64_unknown_linux_gnu"
+        # --setenv NIX_CC_WRAPPER_TARGET_TARGET_x86_64_unknown_linux_gnu "$NIX_CC_WRAPPER_TARGET_TARGET_x86_64_unknown_linux_gnu"
+        # --setenv NIX_DYNAMIC_LINKER_x86_64_unknown_linux_gnu "$NIX_DYNAMIC_LINKER_x86_64_unknown_linux_gnu"
+        # --setenv NIX_LDFLAGS "$NIX_LDFLAGS"
+        # --setenv NIX_LDFLAGS_before "$NIX_LDFLAGS_before"
+        # --setenv XDG_DATA_DIRS "$XDG_DATA_DIRS"
       )
 
       # Iteratively mount the exact Nix Store dependencies required
@@ -401,10 +581,12 @@
       # Symlink our isolated bash into the container's virtual environment
       BWRAP_ARGS+=(--symlink "${pkgs.bashInteractive}/bin/bash" /bin/bash)
       BWRAP_ARGS+=(--symlink "${pkgs.bashInteractive}/bin/bash" /bin/sh)
+      BWRAP_ARGS+=(--symlink "${pkgs.coreutils}/bin/env" /bin/env)
+      BWRAP_ARGS+=(--symlink "${pkgs.coreutils}/bin/env" /usr/bin/env)
 
       # Set a clear prompt indicator and ensure the tools are injected into the agent's PATH
       CONTAINER_PATH="${pkgs.lib.makeBinPath agentTools_LinuxNixOs}:/bin"
-      BWRAP_ARGS+=(--setenv PATH "''${CONTAINER_PATH}")
+      BWRAP_ARGS+=(--setenv PATH "$CONTAINER_PATH")
 
       # DEBUG printing PATH
       [ "$DEBUG" = "true" ] && printf "CONTAINER_PATH env var paths:\n"
@@ -412,7 +594,7 @@
 
       # Shell prompt
       CONTAINER_PS1="\[\e[0;36m\][🤖 container]\[\e[38;5;200m\]\w\n\[\e[0;33m\]\$ "
-      BWRAP_ARGS+=(--setenv PS1 "''${CONTAINER_PS1}")
+      BWRAP_ARGS+=(--setenv PS1 "$CONTAINER_PS1")
 
       # DEBUG printing bwrap args
       [ "$DEBUG" = "true" ] && echo "BWRAP_ARGS = "
@@ -448,7 +630,7 @@
   bwrapShellWrapperLinux = pkgs.writeShellScriptBin "containerized-agent-linux" ''
     set -eo pipefail
 
-    # Default values
+    # Default script parameter values
     MODE="server"
     DEBUG=false
 
@@ -492,6 +674,7 @@
 
     # Build the bwrap execution command
     BWRAP_ARGS=(
+      --die-with-parent
       --clearenv                                 # Strip malicious host environment variables
       --unshare-all                              # Unshare IPC, PID, User, UTS, and Cgroup namespaces
       --share-net                                # Safely allow network traffic for LLM API calls
@@ -503,20 +686,25 @@
       --tmpfs /tmp
       --tmpfs /nix/store
       --dir /bin
-      --dir /home/app_runner
       --ro-bind /etc/resolv.conf /etc/resolv.conf
       --ro-bind /etc/ssl/certs /etc/ssl/certs
       --setenv TERM "''${TERM:-xterm-256color}"
-      --setenv HOME "/home/app_runner"
       --setenv TEMP "/tmp"
       --setenv TEMPDIR "/tmp"
       --setenv TMP "/tmp"
       --setenv TMPDIR "/tmp"
+
+      # Container user
+      --dir /home/app_runner
+      --setenv HOME "/home/app_runner"
       
       # Mount our isolated workspace explicitly as Read/Write
       --dir /workspace
+      --ro-bind ./.opencode /workspace/.opencode
+      --bind ./.git /workspace/.git
       --bind ./process /workspace/process
       --bind ./product /workspace/product
+      --bind ./external /workspace/external
       --chdir /workspace
     )
 
@@ -531,7 +719,7 @@
 
     # Set a clear prompt indicator and ensure the tools are injected into the agent's PATH
     CONTAINER_PATH="${pkgs.lib.makeBinPath agentTools_Linux}:/bin"
-    BWRAP_ARGS+=(--setenv PATH "''${CONTAINER_PATH}")
+    BWRAP_ARGS+=(--setenv PATH "$CONTAINER_PATH")
 
     # DEBUG printing PATH
     [ "$DEBUG" = "true" ] && printf "CONTAINER_PATH env var paths:\n"
@@ -539,7 +727,7 @@
 
     # Shell prompt
     CONTAINER_PS1="\[\e[0;36m\][🤖 container]\[\e[38;5;200m\]\w\n\[\e[0;33m\]\$ "
-    BWRAP_ARGS+=(--setenv PS1 "''${CONTAINER_PS1}")
+    BWRAP_ARGS+=(--setenv PS1 "$CONTAINER_PS1")
 
     ############################################################################
     # Get all dependencies for OpenCode
@@ -555,7 +743,7 @@
     # DEBUG printing bwrap args
     [ "$DEBUG" = "true" ] && echo "LINKER_STORE_PATH = $LINKER_STORE_PATH"
 
-    TARGET_BIN_NIX_STORE_PATHS+=("''${LINKER_STORE_PATH}")
+    TARGET_BIN_NIX_STORE_PATHS+=("$LINKER_STORE_PATH")
 
     TARGET_BIN_BWRAP_ARGS=()
     for path in ''${TARGET_BIN_NIX_STORE_PATHS[@]}; do
@@ -578,17 +766,17 @@
 
     # 7. Also, parse and bind everything inside NIX_LD_LIBRARY_PATH
     if [ -n "''${NIX_LD_LIBRARY_PATH:-}" ]; then
-        # Split the colon-separated paths and bind each folder
-        IFS=':' read -ra PATHS <<< "''${NIX_LD_LIBRARY_PATH}"
-        for p in "''${PATHS[@]}"; do
-          if [ -d "$p" ]; then
-            TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$p" "$p")
-          fi
-        done
+      # Split the colon-separated paths and bind each folder
+      IFS=':' read -ra PATHS <<< "$NIX_LD_LIBRARY_PATH"
+      for p in "''${PATHS[@]}"; do
+        if [ -d "$p" ]; then
+          TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$p" "$p")
+        fi
+      done
     fi
 
     TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "/lib64" "/lib64")
-    TARGET_BIN_BWRAP_ARGS+=("--setenv" "LD_LIBRARY_PATH" "''${LD_LIBRARY_PATH}")
+    TARGET_BIN_BWRAP_ARGS+=("--setenv" "LD_LIBRARY_PATH" "$LD_LIBRARY_PATH")
 
     # DEBUG printing bwrap args
     [ "$DEBUG" = "true" ] && echo "TARGET_BIN_BWRAP_ARGS = "
@@ -601,7 +789,7 @@
     [ "$DEBUG" = "true" ] && printf "\t%s\n" "''${BWRAP_ARGS[@]}"
 
     if [[ "$MODE" == "server" ]]; then
-      echo "🚀 Launching application
+      echo "🚀 Launching application"
       echo "📦 Starting Bubblewrap container"
       ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" opencode serve
     elif [[ "$MODE" == "shell" ]]; then
