@@ -1,70 +1,1031 @@
 {
-  description = "A containerized dev environment running Buildah inside an unshare namespace";
+  description = "A standard devShell that drops into a highly isolated Bubblewrap environment for an AI agent";
 
   inputs = {
-    nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+    nixpkgs.url = "github:nixos/nixpkgs/nixos-unstable";
+    zm_pixi_repo.url = "github:zombiemaker/nix-zm_pixi";
+    zm_opencode_repo.url = "github:zombiemaker/nix-zm_opencode";
   };
 
-  outputs = { self, nixpkgs }:
-    let
-      # Define the architectures you want this flake to support
-      supportedSystems = [ "x86_64-linux" "aarch64-linux" ];
+  outputs = { 
+    self, 
+    nixpkgs, 
+    zm_pixi_repo,
+    zm_opencode_repo
+  }:
+
+  let
+    system = "x86_64-linux";
+    pkgs = import nixpkgs { inherit system; };
+    zm_pixi = zm_pixi_repo.v0_75_0.machine_code.x86_64.linux.musl_libc;
+    
+    agentTools_nixos = [
+      pkgs.nix
+      pkgs.stdenv
+      pkgs.util-linux # pivot_root
+    ];
+
+    agentTools_os = [
+      pkgs.binutils # readelf
+      pkgs.coreutils
+      pkgs.file
+    ];
+
+    agentTools_os_containers = [
+      pkgs.img
+      pkgs.buildah
+      pkgs.podman
+      pkgs.skopeo
+      pkgs.fuse-overlayfs
+      pkgs.fuse # for fusermount to unmount fuse-overlays
+    ];
+
+    agentTools_os_processes = [
+      pkgs.procps
+      pkgs.strace
+    ];
+
+    agentTools_os_networks = [
+      pkgs.dig
+      pkgs.iputils
+      pkgs.net-tools
+      pkgs.procps
+      pkgs.strace
+    ];
+
+    agentTools_os_files = [
+      pkgs.fd
+      pkgs.lsof
+      pkgs.mount
+      pkgs.tree
+      pkgs.umount
+      pkgs.which
+    ];
+
+    agentTools_os_security = [
+      pkgs.bubblewrap
+      pkgs.cacert
+      pkgs.gnutls
+      pkgs.openssl
+    ];
+
+    agentTools_data_text = [
+      pkgs.ast-grep
+      pkgs.bat
+      pkgs.ctags
+      pkgs.gawk
+      pkgs.gnugrep
+      pkgs.gnused
+      pkgs.neovim
+      pkgs.jq
+      pkgs.less
+      pkgs.more
+      pkgs.ripgrep
+      pkgs.tree-sitter
+      pkgs.xmlstarlet
+      pkgs.yq
+    ];
+
+    agentTools_data_image = [
+      pkgs.graphiz
+      pkgs.imagemagick
+    ];
+
+    agentTools_data_audio = [
+      pkgs.ffmpeg
+    ];
+
+    agentTools_data_packages = [
+      pkgs.gnutar
+      pkgs.mamba-cpp
+      pkgs.micromamba
+      pkgs.nuget
+      zm_pixi
+    ];
+
+    agentTools_data_avro = [
+      pkgs.avro-tools
+      pkgs.avro-c
+      pkgs.avro-cpp
+      pkgs.python314Packages.avro
+      pkgs.python314Packages.fastavro
+    ];
+    
+    agentTools_data_flatbuffers = [
+      pkgs.flatbuffers
+      pkgs.parquet-tools
+      pkgs.nail-parquet
+    ];
+
+    agentTools_data_git = [
+      pkgs.git
+      pkgs.delta
+    ];
+
+    agentTools_data_parquet = [
+      pkgs.parquet-tools
+      pkgs.nail-parquet
+    ];
+
+    agentTools_data_store = [
+      pkgs.duckdb
+      pkgs.sqlite
+      pkgs.ladybugdb
+      # rocksdb?
+    ];
+
+    agentTools_http = [
+      pkgs.curl
+      pkgs.wget
+    ];
+
+    agentTools_machine_task = [
+      pkgs.gnumake
+    ];
+
+    ###############################
+    # Messaging Agent Tools
+    ###############################
+
+    agentTools_nats = [
+      pkgs.natscli
+      pkgs.nats-kafka
+      pkgs.nats-server
+      pkgs.nats-top
+    ];
+
+    agentTools_apacheKafka = [
+      pkgs.apacheKafka
+    ];
+
+    agentTools_eclipseZenoh = [
+      pkgs.zenoh
+      pkgs.zenoh-backend-rocksdb
+      pkgs.zenoh-backend-influxdb
+      pkgs.zenoh-backend-filesystem
+      pkgs.zenoh-plugin-mqtt
+      pkgs.zenoh-plugin-webserver
+      pkgs.zenoh-plugin-dds
+      pkgs.zenoh-c
+      pkgs.zenoh-cpp
+      # zm_zenoh_backend_sql # https://github.com/eclipse-zenoh/zenoh-backend-sql
+      # zm_zenoh_backend_s3 # https://github.com/eclipse-zenoh/zenoh-backend-s3
+      # zm_zenoh_go # https://github.com/eclipse-zenoh/zenoh-go
+      # zm_zenoh_python # https://github.com/eclipse-zenoh/zenoh-python
+      # zm_zenoh_ts # https://github.com/eclipse-zenoh/zenoh-ts
+      # zm_zenoh_java # https://github.com/eclipse-zenoh/zenoh-java
+      # zm_zenoh_csharp # https://github.com/eclipse-zenoh/zenoh-csharp
+      # zm_zenoh_flat # https://github.com/eclipse-zenoh/zenoh-flat
+    ];
+
+    ###############################
+    # Code Stack Agent Tools
+    ###############################
+    agentTools_codeStack_c = [
+      pkgs.clang_22
+      pkgs.clang-tools
+      pkgs.cmake
+      pkgs.gcc
+      pkgs.ninja
+    ];
+
+    agentTools_codeStack_cpp = [
+      pkgs.clang_22
+      pkgs.clang-tools
+      pkgs.cmake
+      pkgs.gcc
+      pkgs.ninja
+    ];
+
+    agentTools_codeStack_csharp_10_dotnet = [
+      # pkgs.dotnet-runtime_10
+      pkgs.dotnet-sdk_10
+      pkgs.omnisharp-roslyn
+      pkgs.nuget
+    ];
+
+    agentTools_codeStack_csharp_mono = [
+      pkgs.mono
+      pkgs.nuget
+    ];
+
+    agentTools_codeStack_csharp_blazorServer = [
+    ];
+
+    agentTools_codeStack_csharp_blazorWasm = [
+    ];
+
+    agentTools_codeStack_gnuBash = [
+      pkgs.bashInteractive
+      pkgs.shellcheck
+    ];
+
+    agentTools_codeStack_elixer = [];
+
+    agentTools_codeStack_go_1_27_standard = [
+      pkgs.go_1_27
+      pkgs.gopls
+      pkgs.go-tools
+      pkgs.gotools
+    ];
+
+    agentTools_codeStack_go_1_27_tinygo = [
+      pkgs.tinygo
+      pkgs.gopls
+      pkgs.go-tools
+      pkgs.gotools
+    ];
+
+    agentTools_codeStack_whatwg_css = [];
+
+    agentTools_codeStack_whatwg_dom = [];
+
+    agentTools_codeStack_whatwg_html = [];
+
+    agentTools_codeStack_java_25_corretto  = [
+      # pkgs.corretto25
+      pkgs.javaPackages.compiler.corretto25
+    ];
+
+    agentTools_codeStack_java_25_eclipseTemurin  = [
+      # pkgs.temurin-bin-25
+      # pkgs.temurin-jre-bin-25
+      pkgs.javaPackages.compiler.temurin-bin.jdk-25
+      pkgs.gradle_9
+      pkgs.gradle-completion
+      pkgs.gradle-dependency-tree-diff
+    ];
+
+    agentTools_codeStack_javaScript = [];
+
+    agentTools_codeStack_javaScript_bun = [];
+
+    agentTools_codeStack_javaScript_deno = [];
+
+    agentTools_codeStack_javaScript_nodejs = [
+      pkgs.nodejs
+    ];
+
+    agentTools_codeStack_javaScript_webBrowser = [];
+
+    agentTools_codeStack_lua_luaJit = [
+      pkgs.luajit
+    ];
+
+    agentTools_codeStack_mojo = [
+      zm_pixi
+    ];
+    
+    agentTools_codeStack_powershell = [
+      pkgs.powershell
+      pkgs.powershell-editor-services
+      pkgs.tree-sitter
+      pkgs.tree-sitter-grammars.tree-sitter-powershell
+    ];
+
+    agentTools_codeStack_python_3_14_cpython = [
+      pkgs.python314
+      pkgs.python314Packages.pip
+      pkgs.uv
+      pkgs.ruff
+      zm_pixi
+    ];
+
+    agentTools_codeStack_python_3_11_pypy = [
+      pkgs.pypy311
+    ];
+
+    agentTools_codeStack_r = [];
+
+    agentTools_codeStack_ruby = [];
+
+    agentTools_codeStack_rust = [
+      pkgs.rustup
+      pkgs.rust-bindgen # generates Rust FFI code to C libraries
+      pkgs.rust-cbindgen # generates C bindings from Rust code
+    ];
+
+    agentTools_codeStack_typescript = [];
+
+    agentTools_codeStack_typescript_deno = [];
+
+    agentTools_codeStack_typescript_nodejs = [];
+
+    agentTools_codeStack_wasm = [
+      pkgs.wasm-tools
+    ];
+
+    agentTools_codeStack_wasm_wasi = [
+      pkgs.wit-bindgen
+      pkgs.wasmtime
+      pkgs.wasmer
+      pkgs.wkg
+    ];
+
+    agentTools_codeStack_wasm_webBrowser = [];
+
+    ###############################
+    # Cloud Stack Agent Tools
+    ###############################
+
+    agentTools_cloudStack_aws = [];
+
+    agentTools_cloudStack_azure = [];
+
+    agentTools_cloudStack_cloudFlare = [];
+
+    agentTools_cloudStack_digitalOcean = [];
+
+    agentTools_cloudStack_googleCloud = [];
+
+    agentTools_cloudStack_vmware = [];
+
+    agentTools_cloudStack_kubernetes = [
+      pkgs.k9s
+      pkgs.kubectl
+    ];
+    
+
+    # ACTION: Select derivations groups to make available to AI agent harness
+    agentTools_Selected = agentTools_nixos ++
+      agentTools_os ++
+      agentTools_os_containers ++
+      agentTools_os_processes ++
+      agentTools_os_files ++
+      agentTools_os_networks ++
+      agentTools_os_security ++
+      agentTools_machine_task ++
+      agentTools_http ++
+      agentTools_data_git ++
+      agentTools_data_text ++
+      agentTools_data_packages ++
+      agentTools_codeStack_gnuBash ++ 
+      agentTools_codeStack_powershell ++
+      agentTools_codeStack_c ++
+      agentTools_codeStack_csharp_10_dotnet ++
+      agentTools_codeStack_go_1_27_standard ++
+      agentTools_codeStack_whatwg_css ++
+      agentTools_codeStack_whatwg_dom ++
+      agentTools_codeStack_whatwg_html ++
+      agentTools_codeStack_java_25_eclipseTemurin ++
+      agentTools_codeStack_javaScript_nodejs ++
+      agentTools_codeStack_python_3_14_cpython ++
+      agentTools_codeStack_python_3_11_pypy ++
+      agentTools_codeStack_rust ++
+      agentTools_codeStack_wasm ++
+      agentTools_codeStack_wasm_wasi ++
+      agentTools_cloudStack_kubernetes;
+
+
+    ###############################################################################
+    # NixOS-Native Linux ELF
+    ###############################################################################
+    zm_opencode_linux_nixos = zm_opencode_repo.v2_0_26.machine_code.x86_64.linux_nixos.gnu_libc;
+
+    # Define the collection of tool derivations the AI Agent is allowed to use
+    agentTools_LinuxNixOs = agentTools_Selected ++
+      [ zm_opencode_linux_nixos ];
+
+    agentClosureLinuxNixOs = pkgs.closureInfo { rootPaths = agentTools_LinuxNixOs; };
+
+    # Build a GNU Bash script that provisions the bwrap layers and spawns an interactive containerized bash
+    bwrapShellWrapperLinuxNixOs = pkgs.writeShellScriptBin "containerized-agent-linux_nixos" ''
+      #!/usr/bin/env bash
+
+      script_name=$(basename "$0")
+      echo "Running script: $script_name"
+
+      # Check if a custom marker variable is set. If not, re-run under unshare.
+      if [ -z "$IN_NAMESPACE" ]; then
+        echo "Not in new namespace"
+        echo "User outside namespace: $(whoami)"
+        echo "PID outside namespace: $$"
+        echo "Creating new namespace and re-executing script"
+        export IN_NAMESPACE=1
+
+        # --map-root-user, -r maps current user to root inside namespace
+        # --cgroup, -C creates new cgroup namespace
+        # --mount, -m creates new mount namespace
+        # --net, -n creates new network namespace
+        # --pid, -p creates new process PID namespace (forks process?)
+        # --time, -T creates new time namespace
+        # --user, -U creates new user ID / group ID namespace
+        # --uts creates new uts namespace
+        exec unshare \
+          --user \
+          --map-users 100000:100000:65536 \
+          --map-groups 100000:100000:65536 \
+          --map-root-user \
+          --pid \
+          --mount \
+          --fork \
+          "$0" "$@"
+      fi
+
+      # --- Everything below this line runs INSIDE the new user namespace ---
+      echo "User inside namespace: $(whoami)"
+      echo "PID inside namespace: $$"
+      echo "Granted full set of of all root capabilities including CAP_SYS_ADMIN"      
       
-      # Helper function to generate attributes for each system
-      forAllSystems = f: nixpkgs.lib.genAttrs supportedSystems (system: f (
-        import nixpkgs {
-          inherit system;
-          config = { allowUnfree = true; };
+      set -eo pipefail
+
+      # Default script variable values
+      DEBUG=false
+      MODE="server"
+      RANDOM_HOME_HOST_NAME=false
+      HOST_TEMP_PATH="./.temp"
+      CONTAINER_MOUNT_HOST_PATH="$HOST_TEMP_PATH/container-mount"
+      CONTAINER_FS_HOST_PATH="$HOST_TEMP_PATH/container-fs"
+      CONTAINER_BIN_HOST_PATH="$CONTAINER_FS_HOST_PATH/bin"
+      CONTAINER_ETC_HOST_PATH="$CONTAINER_FS_HOST_PATH/etc"
+      CONTAINER_HOME_HOST_PATH="$CONTAINER_FS_HOST_PATH/home"
+      CONTAINER_TEMP_HOST_PATH="$CONTAINER_FS_HOST_PATH/tmp"
+      CONTAINER_BUILDAH_HOST_PATH="$CONTAINER_FS_HOST_PATH/buildah"
+      CONTAINER_BUILDAH_RUNROOT_HOST_PATH="$CONTAINER_BUILDAH_HOST_PATH/runroot"
+      CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH="$CONTAINER_BUILDAH_HOST_PATH/graphroot"
+      CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH="$CONTAINER_BUILDAH_HOST_PATH/imagestore"
+      CONTAINER_WORKSPACE_HOST_PATH="$CONTAINER_FS_HOST_PATH/workspace"
+      CONTAINER_WORKSPACE_BUILDS_HOST_PATH="./.builds"
+      CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH="./.downloads"
+      CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH="./external"
+      CONTAINER_WORKSPACE_GIT_HOST_PATH="./.gitt"
+      CONTAINER_WORKSPACE_OPENCODE_HOST_PATH="./.opencode"
+      CONTAINER_WORKSPACE_PROCESS_HOST_PATH="./process"
+      CONTAINER_WORKSPACE_PRODUCT_HOST_PATH="./product"
+      CONTAINER_USER_NAME="app-runner"
+      CONTAINER_USER_HOME_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME"
+      CONTAINER_USER_UID=$(id -u)
+      CONTAINER_USER_GID=$(id -g)
+      CONTAINER_PATH="${pkgs.lib.makeBinPath agentTools_LinuxNixOs}:/bin"
+      CONTAINER_PS1="\[\e[0;36m\][🤖 container]\[\e[38;5;200m\]\w\n\[\e[0;33m\]\$ "
+
+      # Make temp directories on host
+      mkdir -p $HOST_TEMP_PATH
+      mkdir -p $CONTAINER_MOUNT_HOST_PATH
+      mkdir -p $CONTAINER_FS_HOST_PATH
+      mkdir -p $CONTAINER_BIN_HOST_PATH
+      mkdir -p $CONTAINER_ETC_HOST_PATH
+      mkdir -p $CONTAINER_HOME_HOST_PATH
+      mkdir -p $CONTAINER_TEMP_HOST_PATH
+      mkdir -p $CONTAINER_BUILDAH_RUNROOT_HOST_PATH
+      mkdir -p $CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH
+      mkdir -p $CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH
+      mkdir -p $CONTAINER_USER_HOME_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_BUILDS_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_OPENCODE_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_PROCESS_HOST_PATH
+      mkdir -p $CONTAINER_WORKSPACE_PRODUCT_HOST_PATH
+
+
+      # Evaluate the list and bake a standard space-separated Bash array definition right here
+      mapfile -t NIX_STORE_PATHS < "${agentClosureLinuxNixOs}/store-paths"
+
+
+      # Display usage helper
+      usage() {
+        cat <<EOF
+      Usage: $(basename "$0") [OPTIONS]
+
+      Options:
+        --mode MODE            "server" (default) or "shell"
+        --debug                Prints debug messages
+        --help                 Display this help message
+      EOF
+        exit 0
+      }
+
+      # Parse named parameters
+      while [[ $# -gt 0 ]]; do
+        case "$1" in
+          --mode)
+            MODE="''${2,,}"
+            shift 2
+            ;;
+          --random-home-name)
+            RANDOM_HOME_HOST_NAME=true
+            ;;
+          --debug)
+            DEBUG=true
+            ;;
+          --help)
+            usage
+            ;;
+          *)
+            echo "Error: Unknown argument '$1'" >&2
+            echo "Use --help for usage details." >&2
+            exit 1
+            ;;
+        esac
+      done
+      
+
+      # -------------------------------------------------------------------------
+      # --- BUBBLEWRAP-LIKE FILESYSTEM ISOLATION ---
+      # -------------------------------------------------------------------------
+      # Inside the namespace, we are root and have CAP_SYS_ADMIN.
+
+      # Setting enironment variables
+      PATH="$CONTAINER_PATH"      
+      export PS1="$CONTAINER_PS1"
+
+      # Force all inherited host mounts to be private inside this namespace so
+      # changes do not attempt to propagate back to the host.
+      mount --make-rprivate /
+
+      # Create a clean, blank slate for our new root filesystem
+      export SANDBOX_ROOT=$(realpath $CONTAINER_MOUNT_HOST_PATH)
+
+      echo "=== Preparing Sandbox Root at $SANDBOX_ROOT ==="
+
+      # Ensure the base sandbox root exists and is turned into a mount point (required for pivot_root)
+      # NOTE: must use absolute path for the value for SANDBOX_ROOT otherwise pivot_root will have issues
+      mount -t tmpfs -o exec,mode=0755 tmpfs "$SANDBOX_ROOT"
+      mount --make-private "$SANDBOX_ROOT"
+      mkdir -p "$SANDBOX_ROOT"/{dev,proc,sys,bin,buildah,etc,home,nix,usr/bin,tmp,workspace}
+      mkdir -p "$SANDBOX_ROOT/workspace"/{.git,.opencode,builds,downloads,external,process,product}
+
+
+      echo "=== Bind Mount Nix Store Paths ==="
+      for source_path in "''${NIX_STORE_PATHS[@]}"; do
+        # Skip if the source path resolution failed or is empty
+        if [ -z "$source_path" ]; then continue; fi
+
+        # Ensure the source actually exists on the host
+        if [ ! -e "$source_path" ]; then
+          echo "⚠️ Warning: Source path '$source_path' does not exist. Skipping." >&2
+          continue
+        fi
+
+        # Mirror the exact path structure relative to the sandbox root
+        # Example: /nix/store/.../bin/bash becomes $SANDBOX_ROOT/nix/store/.../bin/bash
+        dest_path="''${SANDBOX_ROOT}''${source_path}"
+
+        if [ -d "$source_path" ]; then
+          # Case A: Source is a directory
+          echo "📁 Directory: $source_path -> $dest_path"
+          mkdir -p "$dest_path"
+          mount --bind "$source_path" "$dest_path"
+
+        elif [ -f "$source_path" ] || [ -L "$source_path" ]; then
+          # Case B: Source is a file or a symlink to a file
+          echo "📄 File:      $source_path -> $dest_path"
+          # Ensure parent directory exists first
+          mkdir -p "$(dirname "$dest_path")"
+          # Create the empty target file skeleton
+          touch "$dest_path"
+          mount --bind "$source_path" "$dest_path"
+        fi
+      done
+
+      # Bind Mount Bash into the container's namespace environment
+      touch "$SANDBOX_ROOT/bin/bash"
+      touch "$SANDBOX_ROOT/bin/sh"
+      touch "$SANDBOX_ROOT/bin/env"
+      touch "$SANDBOX_ROOT/usr/bin/env"
+      mount --bind -o exec "${pkgs.bashInteractive}/bin/bash" "$SANDBOX_ROOT/bin/bash"
+      mount --bind -o exec "${pkgs.bashInteractive}/bin/bash" "$SANDBOX_ROOT/bin/sh"
+      mount --bind -o exec "${pkgs.coreutils}/bin/env"        "$SANDBOX_ROOT/bin/env"
+      mount --bind -o exec "${pkgs.coreutils}/bin/env"        "$SANDBOX_ROOT/usr/bin/env"
+      mount --bind $CONTAINER_BUILDAH_HOST_PATH "$SANDBOX_ROOT/buildah"
+      mount --bind $CONTAINER_BIN_HOST_PATH "$SANDBOX_ROOT/bin"
+      mount --bind $CONTAINER_ETC_HOST_PATH "$SANDBOX_ROOT/etc"
+      mount --bind $CONTAINER_HOME_HOST_PATH "$SANDBOX_ROOT/home"
+      mount --bind $CONTAINER_TEMP_HOST_PATH "$SANDBOX_ROOT/tmp"
+      mount --bind $CONTAINER_WORKSPACE_BUILDS_HOST_PATH "$SANDBOX_ROOT/workspace/builds"
+      mount --bind $CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH "$SANDBOX_ROOT/workspace/downloads"
+      mount --bind $CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH "$SANDBOX_ROOT/workspace/external"
+      mount --bind $CONTAINER_WORKSPACE_GIT_HOST_PATH "$SANDBOX_ROOT/workspace/.git"
+      mount --bind $CONTAINER_WORKSPACE_OPENCODE_HOST_PATH "$SANDBOX_ROOT/workspace/.opencode"
+      mount --bind $CONTAINER_WORKSPACE_PROCESS_HOST_PATH "$SANDBOX_ROOT/workspace/process"
+      mount --bind $CONTAINER_WORKSPACE_PRODUCT_HOST_PATH "$SANDBOX_ROOT/workspace/product"
+
+      echo "=== Bind Mounts Complete ==="
+
+      # Trick to to completely vanish old root without even needing a temporary directory
+      cd "$SANDBOX_ROOT"
+
+      # Pivot root directly onto itself. This puts the NEW root at / and the OLD root at / (overlapped)
+      pivot_root . .
+
+      # Re-mount your essential kernel filesystems inside the new root
+      mount -t proc proc /proc
+
+      # Lazily unmount the old root (which is pinned underneath '.')
+      umount -l .
+
+      # Move into the new root directory and update your path execution context
+      cd /
+
+
+      # Container /etc/passwd and /etc/group      
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/passwd"
+      root:x:0:0:root:/root:/bin/bash
+      $CONTAINER_USER_NAME:x:$CONTAINER_USER_UID:$CONTAINER_USER_GID:$CONTAINER_USER_NAME:/home/$CONTAINER_USER_NAME:/bin/bash
+      EOF
+
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/group"
+      root:x:0:
+      $CONTAINER_USER_NAME:x:$CONTAINER_USER_GID:
+      EOF
+
+
+      # Container /etc/subuid and /etc/subgid
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/subuid"
+      $CONTAINER_USER_NAME:100000:65536
+      EOF
+
+      cat <<EOF >  "$CONTAINER_ETC_HOST_PATH/subgid"
+      $CONTAINER_USER_NAME:100000:65536
+      EOF
+
+
+      # Container /etc/containers
+      mkdir -p "$CONTAINER_ETC_HOST_PATH/containers"
+
+      # /etc/containers/containers.conf
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/containers.conf"
+      [engine]
+      # Explicitly forces chroot behavior at the engine layer
+      isolation = "chroot"
+
+      # Strips the engine from trying to escalate or alter supplemental group privileges
+      infra_command = ""
+      EOF
+
+
+      # /etc/containers/storage.conf
+      # Create a local storage.conf to force Buildah to use the VFS driver
+      # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/storage.conf"
+      [storage]
+      driver = "overlay"
+
+      # Temporary/Runtime State Directory      
+      runroot = "/buildah/runroot"
+
+      # Permanent Image & Layer Storage Directory
+      graphroot = "/buildah/graphroot"
+
+      # (Optional) Separate Image Cache vs. Container Layer content
+      imagestore = "/buildah/imagestore" 
+
+      [storage.options.overlay]
+      mount_program = "/usr/bin/fuse-overlayfs"
+      EOF
+
+
+      # /etc/containers/registries.conf
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/registries.conf"
+      # /etc/containers/registries.conf
+      # This is the system-wide configuration file for container image registries 
+      # used by Buildah, Podman, and Skopeo.
+
+      # Note: If $HOME/.config/containers/registries.conf exists, it will completely 
+      # override this file for that specific user.
+
+      # Unqualified-search registries are used when you attempt to pull or build 
+      # from an image name that does not explicitly include a domain (e.g., "ubuntu" instead of "docker.io/library/ubuntu").
+      unqualified-search-registries = [
+          "docker.io"
+      ]
+
+      # Control what happens when an ambiguous short name is used.
+      # "enforcing" - Prompts the user to choose or relies strictly on secure aliases.
+      # "permissive" - Falls back to trying the unqualified-search-registries sequentially.
+      short-name-mode = "permissive"
+
+
+      # ==============================================================================
+      # INDIVIDUAL REGISTRY CONFIGURATIONS
+      # ==============================================================================
+
+      # Example 1: Standard Registry with an optional local mirror
+      [[registry]]
+      location = "docker.io"
+
+      # Optional: Add a local pull-through cache or mirror if you have one.
+      # [[registry.mirror]]
+      # location = "mirror.local.internal"
+
+      # Example 2: Allowing an insecure local registry (HTTP or self-signed certs)
+      # Useful for local development and testing with Buildah.
+      [[registry]]
+      location = "localhost:5000"
+      insecure = true
+
+      # Example 3: Blocking a specific registry entirely
+      # [[registry]]
+      # location = "bad-registry.internal"
+      # blocked = true
+      EOF
+
+
+      # /etc/containers/policy.json
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/policy.json"
+      {
+        "default": [
+          {
+            "type": "insecureAcceptAnything"
+          }
+        ],
+        "transports": {
+          "docker": {
+              "://redhat.com": [
+                  {
+                      "type": "signedBy",
+                      "keyType": "GPGKeys",
+                      "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                  }
+              ],
+              "registry.redhat.io": [
+                  {
+                      "type": "signedBy",
+                      "keyType": "GPGKeys",
+                      "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                  }
+              ],
+              "registry.fedoraproject.org": [
+                  {
+                      "type": "signedBy",
+                      "keyType": "GPGKeys",
+                      "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-39-primary"
+                  }
+              ]
+          },
+          "docker-daemon": {
+              "": [
+                  {
+                      "type": "insecureAcceptAnything"
+                  }
+              ]
+          }
         }
-      ));
-    in
-    {
-      devShells = forAllSystems (pkgs: {
-        default = pkgs.mkShell {
-          name = "buildah-container-env";
+      }
+      EOF
 
-          # 1. Provide Buildah, unshare (util-linux), and any other dependencies
-          packages = with pkgs; [
-            buildah
-            util-linux     # Provides the 'unshare' binary
-            shadow         # Provides newuidmap/newgidmap if needed by unshare/buildah
-            bashInteractive
-          ];
 
-          # 2. Inject your Bash entry script via the shellHook
-          shellHook = ''
-            # Ensure we are using a clean bash session
-            if [ -z "$IN_NAMESPACE" ]; then
-              echo "Running script: devShell shellHook"
-              echo "Not in new namespace"
-              echo "User outside namespace: $(whoami)"
-              echo "PID outside namespace: $$"
-              echo "Creating new namespace and re-executing shell"
 
-              export IN_NAMESPACE=1
 
-              # --map-root-user, -r maps current user to root inside namespace
-              # --pid creates new process PID namespace (forks process)
-              # --mount creates new mount namespace
-              # --fork forks the specified program before executing
-              exec unshare \
-                --user \
-                --map-users 100000:100000:65536 \
-                --map-groups 100000:100000:65536 \
-                --map-root-user \
-                --pid \
-                --mount \
-                --fork \
-                bash --rcfile <(echo "export IN_NAMESPACE=1; PS1='[namespace-shell]# '")
-            fi
 
-            # --- Everything below this line runs INSIDE the new user namespace ---
-            echo "User inside namespace: $(whoami)"
-            echo "PID inside namespace: $$"
-            echo "Granted full set of all root capabilities including CAP_SYS_ADMIN"
-            echo "Buildah version: $(buildah --version)"
-          '';
+
+
+
+
+
+
+
+
+
+
+      if [[ "$MODE" == "server" ]]; then
+        echo "🚀 Launching application"
+        echo "📦 Starting Bubblewrap container"
+        opencode serve
+      elif [[ "$MODE" == "shell" ]]; then
+        echo "🚀 Launching shell"
+        echo "📦 Starting Bubblewrap container"
+        bash
+      else
+        echo "Unexpected MODE '$MODE'"
+      fi
+    '';
+
+  
+  ###############################################################################
+  # Traditional Linux ELF & nix-ld Shimmed
+  ###############################################################################
+  zm_opencode_linux = zm_opencode_repo.v2_0_26.machine_code.x86_64.linux.gnu_libc;
+  
+  # Define the collection of tool derivations the AI Agent is allowed to use
+  agentTools_Linux = agentTools_Selected ++
+    [ zm_opencode_linux ];
+
+  # Create a closure path containing the store paths of ALL dependencies
+  agentClosureLinux = pkgs.closureInfo { rootPaths = agentTools_Linux; };
+
+  # Build a GNU Bash script that provisions the bwrap layers and spawns an interactive containerized bash
+  bwrapShellWrapperLinux = pkgs.writeShellScriptBin "containerized-agent-linux" ''
+    set -eo pipefail
+
+    # Default script parameter values
+    MODE="server"
+    DEBUG=false
+
+    # Display usage helper
+    usage() {
+      cat <<EOF
+    Usage: $(basename "$0") [OPTIONS]
+
+    Options:
+      --mode MODE            "server" (default) or "shell"
+      --debug                Prints debug messages
+      --help                 Display this help message
+    EOF
+      exit 0
+    }
+
+    # Parse named parameters
+    while [[ $# -gt 0 ]]; do
+      case "$1" in
+        --mode)
+          MODE="''${2,,}"
+          shift 2
+          ;;
+        --debug)
+          DEBUG=true
+          ;;
+        --help)
+          usage
+          ;;
+        *)
+          echo "Error: Unknown argument '$1'" >&2
+          echo "Use --help for usage details." >&2
+          exit 1
+          ;;
+      esac
+    done
+
+    
+    # Evaluate the list and bakes a standard space-separated Bash array definition right here
+    mapfile -t NIX_STORE_PATHS < "${agentClosureLinux}/store-paths"
+
+    # Build the bwrap execution command
+    BWRAP_ARGS=(
+      --die-with-parent
+      --clearenv                                 # Strip malicious host environment variables
+      --unshare-all                              # Unshare IPC, PID, User, UTS, and Cgroup namespaces
+      --share-net                                # Safely allow network traffic for LLM API calls
+      
+      # Setup core filesystem structural nodes
+      --proc /proc
+      --dev /dev
+      --tmpfs /run
+      --tmpfs /tmp
+      --tmpfs /nix/store
+      --dir /bin
+      --ro-bind /etc/resolv.conf /etc/resolv.conf
+      --ro-bind /etc/ssl/certs /etc/ssl/certs
+      --setenv TERM "''${TERM:-xterm-256color}"
+      --setenv TEMP "/tmp"
+      --setenv TEMPDIR "/tmp"
+      --setenv TMP "/tmp"
+      --setenv TMPDIR "/tmp"
+
+      # Container user
+      --dir /home/app_runner
+      --setenv HOME "/home/app_runner"
+      
+      # Mount our isolated workspace explicitly as Read/Write
+      --dir /workspace
+      --ro-bind ./.opencode /workspace/.opencode
+      --bind ./.git /workspace/.git
+      --bind ./process /workspace/process
+      --bind ./product /workspace/product
+      --bind ./external /workspace/external
+      --chdir /workspace
+    )
+
+    # Iteratively mount the exact Nix Store dependencies required
+    for path in "''${NIX_STORE_PATHS[@]}"; do
+      BWRAP_ARGS+=(--ro-bind "$path" "$path")
+    done
+
+    # Symlink our isolated bash into the container's virtual environment
+    BWRAP_ARGS+=(--symlink "${pkgs.bashInteractive}/bin/bash" /bin/bash)
+    BWRAP_ARGS+=(--symlink "${pkgs.bashInteractive}/bin/bash" /bin/sh)
+
+    # Set a clear prompt indicator and ensure the tools are injected into the agent's PATH
+    CONTAINER_PATH="${pkgs.lib.makeBinPath agentTools_Linux}:/bin"
+    BWRAP_ARGS+=(--setenv PATH "$CONTAINER_PATH")
+
+    # DEBUG printing PATH
+    [ "$DEBUG" = "true" ] && printf "CONTAINER_PATH env var paths:\n"
+    [ "$DEBUG" = "true" ] && printf "\t%b\n" "''${CONTAINER_PATH//:/\\n\\t}"
+
+    # Shell prompt
+    CONTAINER_PS1="\[\e[0;36m\][🤖 container]\[\e[38;5;200m\]\w\n\[\e[0;33m\]\$ "
+    BWRAP_ARGS+=(--setenv PS1 "$CONTAINER_PS1")
+
+    ############################################################################
+    # Get all dependencies for OpenCode
+    ############################################################################
+
+    TARGET_BIN="${zm_opencode_linux}/bin/opencode"
+    mapfile -t TARGET_BIN_NIX_STORE_PATHS < <(ldd "$TARGET_BIN" 2>/dev/null | \
+      grep -o '/nix/store/[^/]*' | \
+      sort -u)  
+
+    LINKER_STORE_PATH=$(readlink -f /lib64/ld-linux-x86-64.so.2 | grep -o '/nix/store/[^/]*')
+
+    # DEBUG printing bwrap args
+    [ "$DEBUG" = "true" ] && echo "LINKER_STORE_PATH = $LINKER_STORE_PATH"
+
+    TARGET_BIN_NIX_STORE_PATHS+=("$LINKER_STORE_PATH")
+
+    TARGET_BIN_BWRAP_ARGS=()
+    for path in ''${TARGET_BIN_NIX_STORE_PATHS[@]}; do
+      # DEBUG printing bwrap args
+      [ "$DEBUG" = "true" ] && echo "TARGET_BIN_NIX_STORE_PATHS item: $path"
+
+      TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$path" "$path")
+    done
+
+    if [ -n "''${NIX_LD:-}" ]; then
+      # DEBUG printing bwrap args
+      [ "$DEBUG" = "true" ] && echo "NIX_LD is pointing to: $NIX_LD"
+      
+      # Extract the parent Nix store directory of the fallback linker
+      NIX_LD_DIR=$(readlink "$NIX_LD" | grep -o '/nix/store/[^/]*')
+      
+      # Append this directory to your Bubblewrap mount arguments array
+      TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$NIX_LD_DIR" "$NIX_LD_DIR")
+    fi
+
+    # 7. Also, parse and bind everything inside NIX_LD_LIBRARY_PATH
+    if [ -n "''${NIX_LD_LIBRARY_PATH:-}" ]; then
+      # Split the colon-separated paths and bind each folder
+      IFS=':' read -ra PATHS <<< "$NIX_LD_LIBRARY_PATH"
+      for p in "''${PATHS[@]}"; do
+        if [ -d "$p" ]; then
+          TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$p" "$p")
+        fi
+      done
+    fi
+
+    TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "/lib64" "/lib64")
+    TARGET_BIN_BWRAP_ARGS+=("--setenv" "LD_LIBRARY_PATH" "$LD_LIBRARY_PATH")
+
+    # DEBUG printing bwrap args
+    [ "$DEBUG" = "true" ] && echo "TARGET_BIN_BWRAP_ARGS = "
+    [ "$DEBUG" = "true" ] && printf "\t%s\n" "''${TARGET_BIN_BWRAP_ARGS[@]}"
+
+    ############################################################################
+
+    # DEBUG printing bwrap args
+    [ "$DEBUG" = "true" ] && echo "BWRAP_ARGS = "
+    [ "$DEBUG" = "true" ] && printf "\t%s\n" "''${BWRAP_ARGS[@]}"
+
+    if [[ "$MODE" == "server" ]]; then
+      echo "🚀 Launching application"
+      echo "📦 Starting Bubblewrap container"
+      ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" opencode serve
+    elif [[ "$MODE" == "shell" ]]; then
+      echo "🚀 Launching shell"
+      echo "📦 Starting Bubblewrap container"
+      ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" "${pkgs.bashInteractive}/bin/bash"
+    else
+      echo "Unexpected MODE '$MODE'"
+    fi
+  '';
+
+  in {
+    v0_1_0 = {
+      shells = {
+        x86_64 = {
+          linux_nixos = {
+            shell = pkgs.mkShell {
+              name = "containerized-opencode-linux_nixos-shell";
+              shellHook = ''
+                echo "🔐 Initializing isolated AI workspace..."
+                exec ${bwrapShellWrapperLinuxNixOs}/bin/containerized-agent-linux_nixos --mode shell
+              '';
+            };
+
+            server = pkgs.mkShell {
+              name = "containerized-opencode-linux_nixos-server";
+              shellHook = ''
+                echo "🔐 Initializing isolated AI workspace..."
+                exec ${bwrapShellWrapperLinuxNixOs}/bin/containerized-agent-linux_nixos --mode server
+              '';
+            };
+          };
+
+          linux = pkgs.mkShell {
+            shell = pkgs.mkShell {
+              name = "containerized-opencode-linux-shell";
+              shellHook = ''
+                echo "🔐 Initializing isolated AI workspace..."
+                exec ${bwrapShellWrapperLinux}/bin/containerized-agent-linux --mode shell
+              '';
+            };
+
+            server = pkgs.mkShell {
+              name = "containerized-opencode-linux-server";
+              shellHook = ''
+                echo "🔐 Initializing isolated AI workspace..."
+                exec ${bwrapShellWrapperLinux}/bin/containerized-agent-linux --mode server
+              '';
+            };
+          };
+
+          default = self.v0_1_0.shells.x86_64.linux_nixos;
         };
-      });
+      };
     };
+
+    latest = self.v0_1_0;
+  };
 }
