@@ -73,6 +73,7 @@
       pkgs.gnused
       pkgs.neovim
       pkgs.jq
+      pkgs.less
       pkgs.ripgrep
       pkgs.tree-sitter
       pkgs.xmlstarlet

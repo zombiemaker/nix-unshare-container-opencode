@@ -30,19 +30,21 @@
       pkgs.file
     ];
 
-    agentTools_osSystem_containers = [
+    agentTools_os_containers = [
       pkgs.img
       pkgs.buildah
       pkgs.podman
       pkgs.skopeo
+      pkgs.fuse-overlayfs
+      pkgs.fuse # for fusermount to unmount fuse-overlays
     ];
 
-    agentTools_osSystem_processes = [
+    agentTools_os_processes = [
       pkgs.procps
       pkgs.strace
     ];
 
-    agentTools_osSystem_networks = [
+    agentTools_osnetworks = [
       pkgs.dig
       pkgs.iputils
       pkgs.net-tools
@@ -50,14 +52,15 @@
       pkgs.strace
     ];
 
-    agentTools_osSystem_files = [
+    agentTools_os_files = [
       pkgs.fd
       pkgs.lsof
+      pkgs.mount
       pkgs.tree
       pkgs.which
     ];
 
-    agentTools_osSystem_security = [
+    agentTools_os_security = [
       pkgs.bubblewrap
       pkgs.cacert
       pkgs.gnutls
@@ -73,6 +76,8 @@
       pkgs.gnused
       pkgs.neovim
       pkgs.jq
+      pkgs.less
+      pkgs.more
       pkgs.ripgrep
       pkgs.tree-sitter
       pkgs.xmlstarlet
@@ -229,7 +234,11 @@
       pkgs.gotools
     ];
 
-    agentTools_codeStack_html_css = [];
+    agentTools_codeStack_whatwg_css = [];
+
+    agentTools_codeStack_whatwg_dom = [];
+
+    agentTools_codeStack_whatwg_html = [];
 
     agentTools_codeStack_java_25_corretto  = [
       # pkgs.corretto25
@@ -329,7 +338,6 @@
 
     agentTools_cloudStack_vmware = [];
 
-
     agentTools_cloudStack_kubernetes = [
       pkgs.k9s
       pkgs.kubectl
@@ -337,13 +345,13 @@
     
 
     # ACTION: Select derivations groups to make available to AI agent harness
-    agentTools_Selected =  agentTools_nixos ++
+    agentTools_Selected = agentTools_nixos ++
       agentTools_os ++
-      agentTools_osSystem_containers ++
-      agentTools_osSystem_processes ++
-      agentTools_osSystem_files ++
-      agentTools_osSystem_networks ++
-      agentTools_osSystem_security ++
+      agentTools_os_containers ++
+      agentTools_os_processes ++
+      agentTools_os_files ++
+      agentTools_osnetworks ++
+      agentTools_os_security ++
       agentTools_machine_task ++
       agentTools_http ++
       agentTools_data_git ++
@@ -354,7 +362,9 @@
       agentTools_codeStack_c ++
       agentTools_codeStack_csharp_10_dotnet ++
       agentTools_codeStack_go_1_27_standard ++
-      agentTools_codeStack_html_css ++
+      agentTools_codeStack_whatwg_css ++
+      agentTools_codeStack_whatwg_dom ++
+      agentTools_codeStack_whatwg_html ++
       agentTools_codeStack_java_25_eclipseTemurin ++
       agentTools_codeStack_javaScript_nodejs ++
       agentTools_codeStack_python_3_14_cpython ++
@@ -393,6 +403,9 @@
       CONTAINER_FS_HOST_PATH="$CONTAINER_TEMP_HOST_PATH/container-fs"
       CONTAINER_ETC_HOST_PATH="$CONTAINER_FS_HOST_PATH/etc"
       CONTAINER_HOME_HOST_PATH="$CONTAINER_FS_HOST_PATH/home"
+      CONTAINER_BUILDAH_RUNROOT_HOST_PATH="$CONTAINER_FS_HOST_PATH/buildah-runroot"
+      CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH="$CONTAINER_FS_HOST_PATH/buildah-graphroot"
+      CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH="$CONTAINER_FS_HOST_PATH/buildah-imagestore"
       CONTAINER_WORKSPACE_HOST_PATH="$CONTAINER_FS_HOST_PATH/workspace"
       CONTAINER_WORKSPACE_BUILDS_HOST_PATH="./.builds"
       CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH="./.downloads"
@@ -401,7 +414,9 @@
       CONTAINER_WORKSPACE_PROCESS_HOST_PATH="./process"
       CONTAINER_WORKSPACE_PRODUCT_HOST_PATH="./product"
       CONTAINER_USER_NAME="app-runner"
-      CONTAINER_USER_HOME_HOST_PATH_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME"
+      CONTAINER_USER_HOME_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME"
+      CONTAINER_USER_UID=$(id -u)
+      CONTAINER_USER_GID=$(id -g)
 
       # Display usage helper
       usage() {
@@ -447,32 +462,152 @@
 
       # Container /etc/passwd and /etc/group      
       mkdir -p "$CONTAINER_ETC_HOST_PATH"      
-      RUN_UID=$(id -u)
-      RUN_GID=$(id -g)
-
+ 
       cat <<EOF > "$CONTAINER_ETC_HOST_PATH/passwd"
       root:x:0:0:root:/root:/bin/bash
-      $CONTAINER_USER_NAME:x:$RUN_UID:$RUN_GID:$CONTAINER_USER_NAME:/home/$CONTAINER_USER_NAME:/bin/bash
+      $CONTAINER_USER_NAME:x:$CONTAINER_USER_UID:$CONTAINER_USER_GID:$CONTAINER_USER_NAME:/home/$CONTAINER_USER_NAME:/bin/bash
       EOF
 
       cat <<EOF > "$CONTAINER_ETC_HOST_PATH/group"
       root:x:0:
-      $CONTAINER_USER_NAME:x:$RUN_GID:
+      $CONTAINER_USER_NAME:x:$CONTAINER_USER_GID:
       EOF
 
 
       # Container /etc/subuid and /etc/subgid
-      touch "$CONTAINER_ETC_HOST_PATH/subuid" "$CONTAINER_ETC_HOST_PATH/subgid"
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/subuid"
+      $CONTAINER_USER_NAME:100000:65536
+      EOF
+
+      cat <<EOF >  "$CONTAINER_ETC_HOST_PATH/subgid"
+      $CONTAINER_USER_NAME:100000:65536
+      EOF
 
 
       # Container /etc/containers
       mkdir -p "$CONTAINER_ETC_HOST_PATH/containers"
+
+      # /etc/containers/containers.conf
       cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/containers.conf"
       [engine]
       # Explicitly forces chroot behavior at the engine layer
       isolation = "chroot"
+
       # Strips the engine from trying to escalate or alter supplemental group privileges
       infra_command = ""
+      EOF
+
+      # /etc/containers/storage.conf
+      mkdir -p "$CONTAINER_BUILDAH_RUNROOT_HOST_PATH"
+      mkdir -p "$CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH"
+      mkdir -p "$CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH"
+
+      # Create a local storage.conf to force Buildah to use the VFS driver
+      # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/storage.conf"
+      [storage]
+      driver = "overlay"
+
+      # Temporary/Runtime State Directory      
+      runroot = "/buildah/runroot"
+
+      # Permanent Image & Layer Storage Directory
+      graphroot = "/buildah/graphroot"
+
+      # (Optional) Separate Image Cache vs. Container Layer content
+      imagestore = "/buildah/imagestore" 
+
+      [storage.options.overlay]
+      mount_program = "/usr/bin/fuse-overlayfs"
+      EOF
+
+      # /etc/containers/registries.conf
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/registries.conf"
+      # /etc/containers/registries.conf
+      # This is the system-wide configuration file for container image registries 
+      # used by Buildah, Podman, and Skopeo.
+
+      # Note: If $HOME/.config/containers/registries.conf exists, it will completely 
+      # override this file for that specific user.
+
+      # Unqualified-search registries are used when you attempt to pull or build 
+      # from an image name that does not explicitly include a domain (e.g., "ubuntu" instead of "docker.io/library/ubuntu").
+      unqualified-search-registries = [
+          "docker.io"
+      ]
+
+      # Control what happens when an ambiguous short name is used.
+      # "enforcing" - Prompts the user to choose or relies strictly on secure aliases.
+      # "permissive" - Falls back to trying the unqualified-search-registries sequentially.
+      short-name-mode = "permissive"
+
+
+      # ==============================================================================
+      # INDIVIDUAL REGISTRY CONFIGURATIONS
+      # ==============================================================================
+
+      # Example 1: Standard Registry with an optional local mirror
+      [[registry]]
+      location = "docker.io"
+
+      # Optional: Add a local pull-through cache or mirror if you have one.
+      # [[registry.mirror]]
+      # location = "mirror.local.internal"
+
+      # Example 2: Allowing an insecure local registry (HTTP or self-signed certs)
+      # Useful for local development and testing with Buildah.
+      [[registry]]
+      location = "localhost:5000"
+      insecure = true
+
+      # Example 3: Blocking a specific registry entirely
+      # [[registry]]
+      # location = "bad-registry.internal"
+      # blocked = true
+      EOF
+
+
+      # /etc/containers/policy.json
+      cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/policy.json"
+      {
+        "default": [
+          {
+            "type": "insecureAcceptAnything"
+          }
+        ],
+        "transports": {
+          "docker": {
+              "://redhat.com": [
+                  {
+                      "type": "signedBy",
+                      "keyType": "GPGKeys",
+                      "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                  }
+              ],
+              "registry.redhat.io": [
+                  {
+                      "type": "signedBy",
+                      "keyType": "GPGKeys",
+                      "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-redhat-release"
+                  }
+              ],
+              "registry.fedoraproject.org": [
+                  {
+                      "type": "signedBy",
+                      "keyType": "GPGKeys",
+                      "keyPath": "/etc/pki/rpm-gpg/RPM-GPG-KEY-fedora-39-primary"
+                  }
+              ]
+          },
+          "docker-daemon": {
+              "": [
+                  {
+                      "type": "insecureAcceptAnything"
+                  }
+              ]
+          }
+        }
+      }
       EOF
 
 
@@ -483,32 +618,36 @@
 
       mkdir -p "$CONTAINER_USER_HOME_HOST_PATH"
 
-      
-      # Container user configs for Podman, Buildah, etc.
-      mkdir -p "$CONTAINER_USER_HOME_HOST_PATH/.config/containers"
-      cat <<EOF > "$CONTAINER_USER_HOME_HOST_PATH/.config/containers/storage.conf"
-      [storage]
-      driver = "vfs"
-      EOF
 
-      # Create a local storage.conf to force Buildah to use the VFS driver
-      # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
-      cat <<EOF > "$CONTAINER_USER_HOME_HOST_PATH/config/storage.conf"
-      [storage]
-      driver = "vfs"
-      runroot = "/tmp/runroot"
-      graphroot = "/var/lib/containers/storage"
-      EOF
+      # Creating a Linux namespace for Bubblewrap container to run Buildah
+      unshare \
+        --user \
+        --map-users 100000:100000:65536 \
+        --map-groups 100000:100000:65536 \
+        --fork \
+        --kill-child \
+        sleep infinity &
+      
+      UNSHARE_PID=$!
+
+      # Open a dedicated File Descriptor pointing directly to the configured namespace
+      # Bash automatically assigns an available FD number to the variable UNSHARE_NAMESPACE_FILE_DESCRIPTOR
+      exec {UNSHARE_NAMESPACE_FILE_DESCRIPTOR}< /proc/$UNSHARE_PID/ns/user
+      echo "Bash-assigned file descriptor: $UNSHARE_NAMESPACE_FILE_DESCRIPTOR"
 
 
       # Build the bwrap execution command
       BWRAP_ARGS=(
         --die-with-parent
         --clearenv                                 # Strip malicious host environment variables
-        --unshare-all                              # Unshare IPC, PID, User, UTS, and Cgroup namespaces
-        --share-net                                # Safely allow network traffic for LLM API calls
-        --uid $(id -u)
-        --gid $(id -g)
+        --userns $UNSHARE_NAMESPACE_FILE_DESCRIPTOR
+        # --unshare-all                              # Unshare IPC, PID, User, UTS, and Cgroup namespaces
+        # --share-net                                # Safely allow network traffic for LLM API calls
+        --unshare-pid
+        --unshare-ipc
+        --unshare-pid
+        --unshare-uts
+        --unshare-cgroup
         
         # Setup core filesystem structural nodes
         --proc /proc
@@ -518,7 +657,7 @@
         --dir /bin
         --dir /usr/bin
         --ro-bind /etc/resolv.conf /etc/resolv.conf
-        --ro-bind /etc/ssl/certs /etc/ssl/certs
+        --ro-bind ${pkgs.cacert}/etc/ssl/certs /etc/ssl/certs
         --setenv TERM "''${TERM:-xterm-256color}"
 
         # tmp directory
@@ -545,14 +684,24 @@
         --chdir /workspace
 
         # for container tools (podman, buildah)
+        # --uid $CONTAINER_USER_UID
+        # --gid $CONTAINER_USER_GID
+        --uid 0
+        --gid 0
         --cap-add CAP_SYS_ADMIN
         --cap-add CAP_SETUID
         --cap-add CAP_SETGID
+        --cap-add CAP_SYS_CHROOT
         --dev-bind /dev/fuse /dev/fuse
+        --ro-bind "${pkgs.fuse-overlayfs}/bin/fuse-overlayfs" /usr/bin/fuse-overlayfs
+        --ro-bind "$CONTAINER_ETC_HOST_PATH/containers" /etc/containers
         --ro-bind "$CONTAINER_ETC_HOST_PATH/passwd" /etc/passwd
         --ro-bind "$CONTAINER_ETC_HOST_PATH/group" /etc/group
         --ro-bind "$CONTAINER_ETC_HOST_PATH/subuid" /etc/subuid
         --ro-bind "$CONTAINER_ETC_HOST_PATH/subgid" /etc/subgid
+        --bind "$CONTAINER_BUILDAH_RUNROOT_HOST_PATH" /buildah/runroot
+        --bind "$CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH" /buildah/graphoot
+        --bind "$CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH" /buildah/imagestore        
         --setenv BUILDAH_ISOLATION "chroot"
 
         # TROUBLESHOOTING
@@ -603,11 +752,30 @@
       if [[ "$MODE" == "server" ]]; then
         echo "🚀 Launching application"
         echo "📦 Starting Bubblewrap container"
-        ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" opencode serve
+        ${pkgs.bubblewrap}/bin/bwrap \
+          "''${BWRAP_ARGS[@]}" \
+          "''${TARGET_BIN_BWRAP_ARGS[@]}" \
+          opencode serve
+        
+        # Clean up the background namespace after bwrap exits
+        kill $UNSHARE_PID
+        
+        # Close file descriptor when done
+        exec {UNSHARE_NAMESPACE_FILE_DESCRIPTOR}<&-
+
       elif [[ "$MODE" == "shell" ]]; then
         echo "🚀 Launching shell"
         echo "📦 Starting Bubblewrap container"
-        ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" "${pkgs.bashInteractive}/bin/bash"
+        ${pkgs.bubblewrap}/bin/bwrap \
+          "''${BWRAP_ARGS[@]}" \
+          "''${TARGET_BIN_BWRAP_ARGS[@]}" \
+          "${pkgs.bashInteractive}/bin/bash"
+        
+        # Clean up the background namespace after bwrap exits
+        kill $UNSHARE_PID
+
+        # Close file descriptor when done
+        exec {UNSHARE_NAMESPACE_FILE_DESCRIPTOR}<&-
       else
         echo "Unexpected MODE '$MODE'"
       fi
