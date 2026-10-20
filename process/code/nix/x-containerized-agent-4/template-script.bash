@@ -6,6 +6,14 @@
 # Level 0 user namespace = namespace of host machine
 # Level 1 user namespace = namespace for AI agent harness programs like OpenCode
 # Level 2 user namespace = namespace for programs like Buildah
+#
+# Capabilities provided:
+# - Run opencode CLI
+# - Run buildah to create container images
+#
+# Capabilities not working:
+# - Run podman to run container images
+# - Access network
 
 script_name=$(basename "$0")
 echo "Running script: $script_name"
@@ -23,6 +31,8 @@ if [ -z "$IN_NAMESPACE" ]; then
 	# --ipc, -i creates new ipc namespace
 	# --mount, -m creates new mount namespace
 	# --net, -n creates new network namespace
+	#	This needs the host to have slirp4netns installed and configured to
+	#	bridge between unshare network namespace and host network namespace
 	# --pid, -p creates new process PID namespace (forks process?)
 	# --time, -T creates new time namespace
 	# --user, -U creates new user ID / group ID namespace
@@ -36,6 +46,7 @@ if [ -z "$IN_NAMESPACE" ]; then
 		--pid \
 		--ipc \
 		--mount \
+		--net \
 		--time \
 		--uts \
 		--fork \
@@ -244,10 +255,21 @@ echo "=== FINISHED: Bind Mount For /dev ==="
 
 
 echo "=== Bind Mount For General System ==="
-mount -t tmpfs sys "$SANDBOX_ROOT/sys"
-mkdir -p "$SANDBOX_ROOT/sys/devices/system/cpu"
-touch "$SANDBOX_ROOT/sys/devices/system/cpu/online"
-echo "0-15" > "$SANDBOX_ROOT/sys/devices/system/cpu/online"
+mount --bind $CONTAINER_BIN_HOST_PATH "$SANDBOX_ROOT/bin"
+mount --bind $CONTAINER_ETC_HOST_PATH "$SANDBOX_ROOT/etc"
+mount --bind $CONTAINER_HOME_HOST_PATH "$SANDBOX_ROOT/home"
+# mount --bind -o exec $CONTAINER_TEMP_HOST_PATH "$SANDBOX_ROOT/tmp"
+mount -t tmpfs -o exec,mode=1777 tmpfs "$SANDBOX_ROOT/tmp"
+
+# mount -t tmpfs sys "$SANDBOX_ROOT/sys"
+# mkdir -p "$SANDBOX_ROOT/sys/devices/system/cpu"
+# touch "$SANDBOX_ROOT/sys/devices/system/cpu/online"
+# echo "0-15" > "$SANDBOX_ROOT/sys/devices/system/cpu/online"
+
+# podman looks for "/sys/fs/cgroup"
+# to mount sysfs sysfs need to configure unshare with "--net" so that the unshare 
+# namespace owns its own network namespace
+mount -t sysfs sysfs "$SANDBOX_ROOT/sys"
 
 touch "$SANDBOX_ROOT/etc/resolv.conf"
 mount --bind /etc/resolv.conf "$SANDBOX_ROOT/etc/resolv.conf"
@@ -255,22 +277,17 @@ mount --bind /etc/resolv.conf "$SANDBOX_ROOT/etc/resolv.conf"
 mkdir -p "$SANDBOX_ROOT/etc/ssl/certs"
 mount --bind "@cacert_nixStorePath@/etc/ssl/certs" "$SANDBOX_ROOT/etc/ssl/certs"
 
-mount --bind $CONTAINER_BIN_HOST_PATH "$SANDBOX_ROOT/bin"
-mount --bind $CONTAINER_ETC_HOST_PATH "$SANDBOX_ROOT/etc"
-mount --bind $CONTAINER_HOME_HOST_PATH "$SANDBOX_ROOT/home"
-# mount --bind -o exec $CONTAINER_TEMP_HOST_PATH "$SANDBOX_ROOT/tmp"
-mount -t tmpfs -o exec,mode=1777 tmpfs "$SANDBOX_ROOT/tmp"
 
 # Replicate the minimal /run path OpenCode searches for on NixOS
 mkdir -p "$SANDBOX_ROOT/run/current-system/sw/bin"
 ln -s "@bashInteractive_nixStorePath@/bin/bash" "$SANDBOX_ROOT/run/current-system/sw/bin/bash"
 
 # Bind standard NixOS library fallbacks if present
-if [ -d /lib64 ]; then
-  mkdir -p "$SANDBOX_ROOT/lib64"
-  mount --bind /lib64 "$SANDBOX_ROOT/lib64"
-  mount -o remount,ro,bind "$SANDBOX_ROOT/lib64"
-fi
+# if [ -d /lib64 ]; then
+#   mkdir -p "$SANDBOX_ROOT/lib64"
+#   mount --bind /lib64 "$SANDBOX_ROOT/lib64"
+#   mount -o remount,ro,bind "$SANDBOX_ROOT/lib64"
+# fi
 echo "=== FINISHED: Bind Mount For General System ==="
 
 
@@ -344,7 +361,7 @@ EOF
 
 
 # /etc/containers/storage.conf
-# Create a local storage.conf to force Buildah to use the VFS driver
+# Create a local storage.conf to force Buildah to use the fuse-overlafs overlay driver
 # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
 cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/storage.conf"
 [storage]
@@ -566,7 +583,8 @@ elif [[ "$MODE" == "shell" ]]; then
 
 	echo "💻 Starting Shell With Cleared Environment Variables"
 	exec env -i \
-	    PATH="$CONTAINER_PATH" \
+	    CONTAINER_RUNTIME=crun \
+		PATH="$CONTAINER_PATH" \
 	    PS1="$CONTAINER_PS1" \
 	    HOME="/home/$CONTAINER_USER_NAME" \
 	    USER="$CONTAINER_USER_NAME" \
@@ -575,6 +593,7 @@ elif [[ "$MODE" == "shell" ]]; then
 		TERM="$TERM" \
 		TMP="/tmp" \
 		TMPDIR="/tmp" \
+		XDG_RUNTIME_DIR="/run/user/$(id -u)" \
 		bash --noprofile --norc
 	bash --noprofile --norc
 

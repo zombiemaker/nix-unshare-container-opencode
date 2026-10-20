@@ -32,10 +32,16 @@
     ];
 
     agentTools_os_containers = [
-      pkgs.img
+      pkgs.aardvark-dns
+      pkgs.catatonit
+      pkgs.conmon
+      pkgs.crun
       pkgs.buildah
+      pkgs.img
+      pkgs.netavark
       pkgs.podman
       pkgs.skopeo
+      pkgs.slirp4netns
       pkgs.fuse-overlayfs
       pkgs.fuse # for fusermount to unmount fuse-overlays
     ];
