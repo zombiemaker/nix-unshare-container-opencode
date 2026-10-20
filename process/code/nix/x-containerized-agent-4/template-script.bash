@@ -19,7 +19,6 @@ if [ -z "$IN_NAMESPACE" ]; then
 	echo "Creating new namespace and re-executing script"
 	export IN_NAMESPACE=1
 
-	# --map-root-user, -r maps current user to root inside namespace
 	# --cgroup, -C creates new cgroup namespace
 	# --ipc, -i creates new ipc namespace
 	# --mount, -m creates new mount namespace
@@ -28,7 +27,10 @@ if [ -z "$IN_NAMESPACE" ]; then
 	# --time, -T creates new time namespace
 	# --user, -U creates new user ID / group ID namespace
 	# --uts creates new uts namespace
+	# --map-root-user, -r maps current user uid and gid to root inside namespace
 	# --map-users <level 1 namespace uid>:<level 0 namespace uid>:<number of uids>
+	# --map-groups <level 1 namespace gid>:<level 0 namespace gid>:<number of gids>
+	# --clear-env do not pass the environment variables of the calling process to the unshared process.
 	exec unshare \
 		--user \
 		--pid \
@@ -122,23 +124,23 @@ exit 0
 while [[ $# -gt 0 ]]; do
 case "$1" in
     --mode)
-    MODE="${2,,}"
-    shift 2
-    ;;
+		MODE="${2,,}"
+		shift 2
+		;;
     --random-home-name)
-    RANDOM_HOME_HOST_NAME=true
-    ;;
+		RANDOM_HOME_HOST_NAME=true
+		;;
     --debug)
-    DEBUG=true
-    ;;
+		DEBUG=true
+		;;
     --help)
-    usage
-    ;;
+		usage
+		;;
     *)
-    echo "Error: Unknown argument '$1'" >&2
-    echo "Use --help for usage details." >&2
-    exit 1
-    ;;
+		echo "Error: Unknown argument '$1'" >&2
+		echo "Use --help for usage details." >&2
+		exit 1
+		;;
 esac
 done
 
@@ -164,7 +166,7 @@ echo "=== Preparing Sandbox Root at $SANDBOX_ROOT ==="
 # NOTE: must use absolute path for the value for SANDBOX_ROOT otherwise pivot_root will have issues
 mount -t tmpfs -o exec,mode=0755 tmpfs "$SANDBOX_ROOT"
 mount --make-private "$SANDBOX_ROOT"
-mkdir -p "$SANDBOX_ROOT"/{dev,proc,sys,bin,buildah,etc,home,nix,run,tmp,usr/bin,workspace,var/tmp}
+mkdir -p "$SANDBOX_ROOT"/{dev,proc,sys,bin,buildah,etc,home,nix,run,tmp,usr/bin,workspace}
 mkdir -p "$SANDBOX_ROOT/workspace"/{.git,.opencode,builds,downloads,external,process,product}
 
 
@@ -201,12 +203,44 @@ fi
 done
 echo "=== FINISHED: Bind Mount Nix Store Paths ==="
 
-echo "=== Bind Mount For GNU Bash & Env ==="
+
+echo "=== Linking GNU Bash & Env ==="
 ln -s "@bashInteractive_nixStorePath@/bin/bash" "$SANDBOX_ROOT/bin/bash"
 ln -s "@bashInteractive_nixStorePath@/bin/bash" "$SANDBOX_ROOT/bin/sh"
 ln -s "@coreutils_nixStorePath@/bin/env"        "$SANDBOX_ROOT/bin/env"
 ln -s "@coreutils_nixStorePath@/bin/env"        "$SANDBOX_ROOT/usr/bin/env"
-echo "=== FINISHED: Bind Mount For GNU Bash & Env ==="
+echo "=== FINISHED: Linking GNU Bash & Env ==="
+
+
+echo "=== Bind Mount For /dev ==="
+mount -t tmpfs -o mode=0755 tmpfs "$SANDBOX_ROOT/dev"
+touch \
+    "$SANDBOX_ROOT/dev/full" \
+	"$SANDBOX_ROOT/dev/null" \
+    "$SANDBOX_ROOT/dev/random" \
+    "$SANDBOX_ROOT/dev/tty" \
+    "$SANDBOX_ROOT/dev/urandom" \
+    "$SANDBOX_ROOT/dev/zero"
+
+# /proc/self/fd is not a standard directory; it is a dynamic, magical gateway managed by the procfs kernel driver
+# "ln -s" will reference the "/proc" path within the unshare namespace not the host namespace
+ln -s /proc/self/fd      "$SANDBOX_ROOT/dev/fd"
+ln -s /proc/self/fd/0    "$SANDBOX_ROOT/dev/stdin"
+ln -s /proc/self/fd/1    "$SANDBOX_ROOT/dev/stdout"
+ln -s /proc/self/fd/2    "$SANDBOX_ROOT/dev/stderr"
+
+mount --bind /dev/full    		"$SANDBOX_ROOT/dev/full"
+mount --bind /dev/null 			"$SANDBOX_ROOT/dev/null"
+mount --bind /dev/random  		"$SANDBOX_ROOT/dev/random"
+mount --bind /dev/tty     		"$SANDBOX_ROOT/dev/tty"
+mount --bind /dev/urandom 		"$SANDBOX_ROOT/dev/urandom"
+mount --bind /dev/zero    		"$SANDBOX_ROOT/dev/zero"
+
+mkdir -p "$SANDBOX_ROOT/dev/pts"
+mount -t devpts -o newinstance,ptmxmode=0666,mode=0620 devpts "$SANDBOX_ROOT/dev/pts"
+rm -f "$SANDBOX_ROOT/dev/ptmx"
+ln -s pts/ptmx "$SANDBOX_ROOT/dev/ptmx"
+echo "=== FINISHED: Bind Mount For /dev ==="
 
 
 echo "=== Bind Mount For General System ==="
@@ -214,9 +248,6 @@ mount -t tmpfs sys "$SANDBOX_ROOT/sys"
 mkdir -p "$SANDBOX_ROOT/sys/devices/system/cpu"
 touch "$SANDBOX_ROOT/sys/devices/system/cpu/online"
 echo "0-15" > "$SANDBOX_ROOT/sys/devices/system/cpu/online"
-
-touch "$SANDBOX_ROOT/dev/null"
-mount --bind /dev/null "$SANDBOX_ROOT/dev/null"
 
 touch "$SANDBOX_ROOT/etc/resolv.conf"
 mount --bind /etc/resolv.conf "$SANDBOX_ROOT/etc/resolv.conf"
@@ -421,6 +452,43 @@ cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/policy.json"
 }
 }
 EOF
+
+mkdir -p "$CONTAINER_USER_HOME_HOST_PATH/.config/opencode"
+cat <<EOF > "$CONTAINER_USER_HOME_HOST_PATH/.config/opencode/opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "disableBuiltInProviders": true,
+  "provider": {
+    "strata": {
+      "name": "strata",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://192.168.1.90:9943/v1"
+      },
+      "models": {
+        "qwen3.8-flash-next-iq3_s": {
+          "name": "qwen3.8-flash-next-iq3_s"
+        }
+      }
+    },
+	"ollama-ejn": {
+      "name": "ollama-ejn",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "http://192.168.1.108:11434"
+      },
+      "models": {
+        "qwen2.5-coder:7b": {
+          "name": "qwen2.5-coder:7b"
+        }
+      }
+    }
+  },
+  "model": "strata/qwen3.8-flash-next-iq3_s"
+}
+EOF
+
+
 echo "=== FINISHED: Create Configuration Files ==="
 
 
@@ -443,33 +511,73 @@ echo "=== FINISHED: Switch Root Directory ==="
 # Move into the new root 
 cd /workspace
 
+# Define the validation function
+check_executables() {
+    # Capture all passed arguments into a local list
+    local targets=("$@")
+
+	# If no arguments were passed, print a warning and exit the function
+    if [ ${#targets[@]} -eq 0 ]; then
+        echo "⚠️ No executables provided to check."
+        return 1
+    fi
+
+    # Loop through each item in the passed list
+    for EXE in "${targets[@]}"; do
+        # Check if the command exists and is executable in the current PATH
+        if ! type "$EXE" &> /dev/null; then
+            echo "❌ $EXE (Not found in PATH)"
+            continue
+        fi
+
+        # Pass --version to prevent interactive hangs or instant dynamic-linker aborts
+        "$EXE" --version &> /dev/null
+
+        # Check the runtime exit status
+        if [ $? -eq 0 ]; then
+            echo "✅ $EXE"
+        else
+            echo "❌ $EXE (Failed execution)"
+        fi
+    done
+}
+
+# Define the list of executables to check
+EXECUTABLES_TO_VERIFY=(
+	"curl"
+	"wget"
+	"buildah"
+	"git"
+)
+
 
 # --- START APPLICATION ---
 
 if [[ "$MODE" == "server" ]]; then
-echo "🚀 Launching application"
-echo "📦 Starting Bubblewrap container"
-opencode serve
+	echo "🚀 Launching application"
+	echo "📦 Starting Bubblewrap container"
+	opencode serve
+
 elif [[ "$MODE" == "shell" ]]; then
-echo "🚀 Launching shell"
-echo "📦 Starting Bubblewrap container"
+	echo "🚀 Launching shell"
+	echo "📦 Starting Bubblewrap container"
 
-cat <<< "Verify that the following works:
-- pwsh
-- curl or wget
-- git
-- opencode
-- buildah
-- clang
-- go"
+	check_executables "${EXECUTABLES_TO_VERIFY[@]}"
 
-exec env -i \
-    PATH="$CONTAINER_PATH" \
-    PS1="$CONTAINER_PS1" \
-    HOME="/home/$CONTAINER_USER_NAME" \
-    USER="$CONTAINER_USER_NAME" \
-    TERM="$TERM" \
-    bash --noprofile --norc
+	echo "💻 Starting Shell With Cleared Environment Variables"
+	exec env -i \
+	    PATH="$CONTAINER_PATH" \
+	    PS1="$CONTAINER_PS1" \
+	    HOME="/home/$CONTAINER_USER_NAME" \
+	    USER="$CONTAINER_USER_NAME" \
+	    TEMP="/tmp" \
+		TEMPDIR="/tmp" \
+		TERM="$TERM" \
+		TMP="/tmp" \
+		TMPDIR="/tmp" \
+		bash --noprofile --norc
+	bash --noprofile --norc
+
 else
-echo "Unexpected MODE '$MODE'"
+	echo "Unexpected MODE '$MODE'"
 fi
