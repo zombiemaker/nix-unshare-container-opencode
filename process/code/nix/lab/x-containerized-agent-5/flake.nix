@@ -399,9 +399,9 @@
 
     # Build a GNU Bash script that provisions the bwrap layers and spawns an interactive containerized bash
     # bwrapShellWrapperLinuxNixOs = pkgs.writeShellScriptBin "containerized-agent-linux_nixos" (builtins.readFile ./create-level_1-namespace.bash);
-    scriptNameLinuxNixOs = "create-ai-agent-harness-namespace-linux_nixos";
+    scriptNameLinuxNixOs = "create-ai-agent-harness-container-linux_nixos";
     bwrapShellWrapperLinuxNixOs = pkgs.replaceVarsWith {
-      src = ./template-script.bash;
+      src = ./build-unshare-env.template.bash;
       replacements = {
         agentToolsBinPaths = pkgs.lib.makeBinPath agentTools_LinuxNixOs;
         agentClosureLinuxNixOs = agentClosureLinuxNixOs;
