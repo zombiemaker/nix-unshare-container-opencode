@@ -1,3 +1,4 @@
+#!/usr/bin/env pwsh
 Push-Location
 Set-Location $PSScriptRoot
 $env:VSC_WORKSPACE_DIR_PATH = $PSScriptRoot
