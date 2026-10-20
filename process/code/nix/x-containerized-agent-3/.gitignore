@@ -1,0 +1,13 @@
+.*
+.*/
+*
+*/
+
+!.gitignore
+!flake.lock
+!flake.nix
+!init_shell.ps1
+!template-script.bash
+!build-container.bash
+!container.file
+!README.md
