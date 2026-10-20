@@ -392,6 +392,13 @@
     bwrapShellWrapperLinuxNixOs = pkgs.writeShellScriptBin "containerized-agent-linux_nixos" ''
       #!/usr/bin/env bash
 
+      # This script creates level 1 Linux user namespace for running AI agent harness like OpenCode
+      # This script configures the level 1 Linux user namespace to support a level 2 Linux user namespace
+      # for daemonless Linux container programs like Buildah to create container images.
+      # Level 0 namespace = user namespace of host machine
+      # Level 1 namespace = user namespace for AI agent harness programs like OpenCode
+      # Level 2 namespace = user namespace for programs like Buildah
+
       script_name=$(basename "$0")
       echo "Running script: $script_name"
 
@@ -405,19 +412,24 @@
 
         # --map-root-user, -r maps current user to root inside namespace
         # --cgroup, -C creates new cgroup namespace
+        # --ipc, -i creates new ipc namespace
         # --mount, -m creates new mount namespace
         # --net, -n creates new network namespace
         # --pid, -p creates new process PID namespace (forks process?)
         # --time, -T creates new time namespace
         # --user, -U creates new user ID / group ID namespace
         # --uts creates new uts namespace
+        # --map-users <level 1 namespace uid>:<level 0 namespace uid>:<number of uids>
         exec unshare \
           --user \
-          --map-users 100000:100000:65536 \
-          --map-groups 100000:100000:65536 \
+          --map-users 0:100000:65536 \
+          --map-groups 0:100000:65536 \
           --map-root-user \
           --pid \
+          --ipc \
           --mount \
+          --time \
+          --uts \
           --fork \
           "$0" "$@"
       fi
@@ -529,7 +541,6 @@
 
       # Setting enironment variables
       PATH="$CONTAINER_PATH"      
-      export PS1="$CONTAINER_PS1"
 
       # Force all inherited host mounts to be private inside this namespace so
       # changes do not attempt to propagate back to the host.
@@ -544,7 +555,7 @@
       # NOTE: must use absolute path for the value for SANDBOX_ROOT otherwise pivot_root will have issues
       mount -t tmpfs -o exec,mode=0755 tmpfs "$SANDBOX_ROOT"
       mount --make-private "$SANDBOX_ROOT"
-      mkdir -p "$SANDBOX_ROOT"/{dev,proc,sys,bin,buildah,etc,home,nix,usr/bin,tmp,workspace}
+      mkdir -p "$SANDBOX_ROOT"/{dev,proc,sys,bin,buildah,etc,home,nix,tmp,usr/bin,workspace,var/tmp}
       mkdir -p "$SANDBOX_ROOT/workspace"/{.git,.opencode,builds,downloads,external,process,product}
 
 
@@ -580,7 +591,7 @@
         fi
       done
 
-      # Bind Mount Bash into the container's namespace environment
+      # Bind mount Bash into the container's namespace environment
       touch "$SANDBOX_ROOT/bin/bash"
       touch "$SANDBOX_ROOT/bin/sh"
       touch "$SANDBOX_ROOT/bin/env"
@@ -589,6 +600,8 @@
       mount --bind -o exec "${pkgs.bashInteractive}/bin/bash" "$SANDBOX_ROOT/bin/sh"
       mount --bind -o exec "${pkgs.coreutils}/bin/env"        "$SANDBOX_ROOT/bin/env"
       mount --bind -o exec "${pkgs.coreutils}/bin/env"        "$SANDBOX_ROOT/usr/bin/env"
+
+      # Bind mount host workspace into container
       mount --bind $CONTAINER_BUILDAH_HOST_PATH "$SANDBOX_ROOT/buildah"
       mount --bind $CONTAINER_BIN_HOST_PATH "$SANDBOX_ROOT/bin"
       mount --bind $CONTAINER_ETC_HOST_PATH "$SANDBOX_ROOT/etc"
@@ -602,23 +615,23 @@
       mount --bind $CONTAINER_WORKSPACE_PROCESS_HOST_PATH "$SANDBOX_ROOT/workspace/process"
       mount --bind $CONTAINER_WORKSPACE_PRODUCT_HOST_PATH "$SANDBOX_ROOT/workspace/product"
 
+      # Bind mount for fuse overlay for Buildah
+      touch "$SANDBOX_ROOT/dev/fuse"
+      touch "$SANDBOX_ROOT/dev/null"
+      touch "$SANDBOX_ROOT/usr/bin/fuse-overlayfs"
+      touch "$SANDBOX_ROOT/etc/resolv.conf"
+      mount --bind /dev/fuse "$SANDBOX_ROOT/dev/fuse"
+      mount --bind /dev/null "$SANDBOX_ROOT/dev/null"
+      mount --bind -o exec "${pkgs.fuse-overlayfs}/bin/fuse-overlayfs" "$SANDBOX_ROOT/usr/bin/fuse-overlayfs"
+      mount --bind /etc/resolv.conf "$SANDBOX_ROOT/etc/resolv.conf"
+      mkdir -p "$SANDBOX_ROOT/etc/ssl/certs"
+      mount --bind "${pkgs.cacert}/etc/ssl/certs" "$SANDBOX_ROOT/etc/ssl/certs"
+      
+
       echo "=== Bind Mounts Complete ==="
 
-      # Trick to to completely vanish old root without even needing a temporary directory
-      cd "$SANDBOX_ROOT"
 
-      # Pivot root directly onto itself. This puts the NEW root at / and the OLD root at / (overlapped)
-      pivot_root . .
-
-      # Re-mount your essential kernel filesystems inside the new root
-      mount -t proc proc /proc
-
-      # Lazily unmount the old root (which is pinned underneath '.')
-      umount -l .
-
-      # Move into the new root directory and update your path execution context
-      cd /
-
+      # --- CREATE CONFIGURATION FILES ---
 
       # Container /etc/passwd and /etc/group      
       cat <<EOF > "$CONTAINER_ETC_HOST_PATH/passwd"
@@ -634,11 +647,19 @@
 
       # Container /etc/subuid and /etc/subgid
       cat <<EOF > "$CONTAINER_ETC_HOST_PATH/subuid"
-      $CONTAINER_USER_NAME:100000:65536
+      # This defines UID allocation for level 2 namespace from the perspective of level 1 namespace
+      # Level 0 namespace = host machine namespace
+      # Level 1 namespace = unshare namespace
+      # Level 2 namespace = buildah container namespace
+      root:1000:10000
       EOF
 
       cat <<EOF >  "$CONTAINER_ETC_HOST_PATH/subgid"
-      $CONTAINER_USER_NAME:100000:65536
+      # This defines GID allocation for level 2 namespace from the perspective of level 1 namespace
+      # Level 0 namespace = host machine namespace
+      # Level 1 namespace = unshare namespace
+      # Level 2 namespace = buildah container namespace
+      root:1000:10000
       EOF
 
 
@@ -767,18 +788,28 @@
       EOF
 
 
+      # --- SWITCH ROOT DIRECTORY ---
+
+      # Trick to to completely vanish old root without even needing a temporary directory
+      cd "$SANDBOX_ROOT"
+
+      # Pivot root directly onto itself. This puts the NEW root at / and the OLD root at / (overlapped)
+      pivot_root . .
+
+      # Re-mount your essential kernel filesystems inside the new root
+      mount -t proc proc /proc
+
+      # Fix ownership inside the container
+      # chown root:root /dev/null
+
+      # Lazily unmount the old root (which is pinned underneath '.')
+      umount -l .
+
+      # Move into the new root 
+      cd /workspace
 
 
-
-
-
-
-
-
-
-
-
-
+      # --- START APPLICATION ---
 
       if [[ "$MODE" == "server" ]]; then
         echo "🚀 Launching application"
@@ -787,7 +818,13 @@
       elif [[ "$MODE" == "shell" ]]; then
         echo "🚀 Launching shell"
         echo "📦 Starting Bubblewrap container"
-        bash
+        exec env -i \
+          PATH="$CONTAINER_PATH" \
+          PS1="$CONTAINER_PS1" \
+          HOME="/home/$CONTAINER_USER_NAME" \
+          USER="$CONTAINER_USER_NAME" \
+          TERM="$TERM" \
+          bash --noprofile --norc
       else
         echo "Unexpected MODE '$MODE'"
       fi
