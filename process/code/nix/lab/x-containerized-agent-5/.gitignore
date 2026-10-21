@@ -7,7 +7,11 @@
 !flake.lock
 !flake.nix
 !init_shell.ps1
-!template-script.bash
+!build-unshare-env.template.bash.original
+!build-unshare-externalEnv.template.bash
+!build-unshare-internalEnv.template.bash
+!build-unshare-internalEnv-donothing.template.bash
+!start-unshare-shell.template.bash
 !build-container.bash
 !container.file
 !README.md

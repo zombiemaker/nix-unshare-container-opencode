@@ -397,11 +397,22 @@
 
     agentClosureLinuxNixOs = pkgs.closureInfo { rootPaths = agentTools_LinuxNixOs; };
 
-    # Build a GNU Bash script that provisions the bwrap layers and spawns an interactive containerized bash
-    # bwrapShellWrapperLinuxNixOs = pkgs.writeShellScriptBin "containerized-agent-linux_nixos" (builtins.readFile ./create-level_1-namespace.bash);
-    scriptNameLinuxNixOs = "create-ai-agent-harness-container-linux_nixos";
-    bwrapShellWrapperLinuxNixOs = pkgs.replaceVarsWith {
-      src = ./build-unshare-env.template.bash;
+    startShellScriptFileName_LinuxNixOs = "ai-agent-harness-start-shell-linux_nixos";
+    startShellScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
+      src = ./start-unshare-shell.template.bash;
+      replacements = {
+        # nothing for now
+      };
+
+      # Set executable permission
+      name = startShellScriptFileName_LinuxNixOs;
+      dir = "bin";
+      isExecutable = true;
+    };
+
+    buildContainerInternalEnvScriptFileName_LinuxNixOs = "ai-agent-harness-build-unshare-internalEnv-linux_nixos";
+    buildContainerInternalEnvScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
+      src = ./build-unshare-internalEnv.template.bash;
       replacements = {
         agentToolsBinPaths = pkgs.lib.makeBinPath agentTools_LinuxNixOs;
         agentClosureLinuxNixOs = agentClosureLinuxNixOs;
@@ -409,10 +420,26 @@
         coreutils_nixStorePath = pkgs.coreutils;
         fuse_overlayfs_nixStorePath = pkgs.fuse-overlayfs;
         cacert_nixStorePath = pkgs.cacert;
+        startShellScriptShellWrapper_nixStorePath = startShellScriptShellWrapper_LinuxNixOs;
       };
 
       # Set executable permission
-      name = scriptNameLinuxNixOs;
+      name = buildContainerInternalEnvScriptFileName_LinuxNixOs;
+      dir = "bin";
+      isExecutable = true;
+    };
+
+    # Build a GNU Bash script that provisions the unshare namespaces and pivot_root
+    buildContainerExternalEnvScriptFileName_LinuxNixOs = "ai-agent-harness-build-unshare-externalEnv-linux_nixos";
+    buildContainerExternalEnvScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
+      src = ./build-unshare-externalEnv.template.bash;
+      replacements = {
+        startShellScriptShellWrapper_nixStorePath = startShellScriptShellWrapper_LinuxNixOs;
+        startShellScriptFileName = startShellScriptFileName_LinuxNixOs;
+      };
+
+      # Set executable permission
+      name = buildContainerExternalEnvScriptFileName_LinuxNixOs;
       dir = "bin";
       isExecutable = true;
     };
@@ -614,7 +641,10 @@
               name = "containerized-opencode-linux_nixos-shell";
               shellHook = ''
                 echo "🔐 Initializing isolated AI workspace..."
-                exec ${bwrapShellWrapperLinuxNixOs}/bin/${scriptNameLinuxNixOs} --mode shell
+                exec ${buildContainerExternalEnvScriptShellWrapper_LinuxNixOs}/bin/${buildContainerExternalEnvScriptFileName_LinuxNixOs} \
+                  --internal-env-script ${buildContainerInternalEnvScriptShellWrapper_LinuxNixOs}/bin/${buildContainerInternalEnvScriptFileName_LinuxNixOs} \
+                  --start-shell-script ${startShellScriptShellWrapper_LinuxNixOs}/bin/${startShellScriptFileName_LinuxNixOs} \
+                  --mode shell
               '';
             };
 
@@ -622,7 +652,9 @@
               name = "containerized-opencode-linux_nixos-server";
               shellHook = ''
                 echo "🔐 Initializing isolated AI workspace..."
-                exec ${bwrapShellWrapperLinuxNixOs}/bin/containerized-agent-linux_nixos --mode server
+                exec ${buildContainerExternalEnvScriptShellWrapper_LinuxNixOs}/bin/${buildContainerExternalEnvScriptFileName_LinuxNixOs} \
+                  --internal-env-script ${buildContainerInternalEnvScriptShellWrapper_LinuxNixOs}/bin/${buildContainerInternalEnvScriptFileName_LinuxNixOs} \
+                  --mode server
               '';
             };
           };
