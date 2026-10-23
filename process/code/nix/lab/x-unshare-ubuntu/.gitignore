@@ -1,0 +1,7 @@
+.*
+.*/
+*
+*/
+
+!.gitignore
+!.build-unshare_ns-ubuntu_resolute_amd64,bash
