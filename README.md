@@ -1,6 +1,6 @@
-# NixOS + Nix + Bubblewrap Containerized AI Agent Harness (OpenCode)
+# NixOS + Nix + Unshare Containerized AI Agent Harness (OpenCode)
 
-Experimental Bubblewrap-containerized environment for OpenCode (or any other 
+Experimental containerized environment for OpenCode (or any other 
 AI agent harness) to go nuts in with less concern that any agent actions will
 destroy your system running it.  Utilizes Nix and Nixpkgs library to provision
 software for the AI agent harness to use.
@@ -12,21 +12,39 @@ software for the AI agent harness to use.
 
 ## Usage
 - Clone repo
-- In a PowerShell session, run "init_shell.ps1" script
+- Run "init_shell.ps1" script
 - Follow options
 
-## Customization To Container Environment
-To customize the programs available to the agent harness to run within the container,
-edit the flake.nix file.  
+## Key Files
+- init_shell.ps1
+- flake.nix
+- process/code/nix/production/build-unshare-outside_ns.template.bash
+- process/code/nix/production/build-unshare-inside_ns.template.bash
+- process/code/nix/production/start-unshare-shell.template.bash
 
-- Add / change any Nix array using the "agentTools" prefix (you can use any name you want)
-- Add / remove any of the agentTools arrays that are part of the "agentToolsSelected" array
-- The "agentToolsSelected" array is used in the GNU Bash script that is created by the flake.
+## Process For Building Linux Namespace / Container Environment
+- init_shell.ps1 invokes flake.nix
+- flake.nix builds Nix derivations
+- flake.nix builds GNU Bash scripts for 
+  - building external namespace environment from template and adds script to /nix/store
+  - building internal namespace environment from template and adds script to /nix/store
+  - building initializes shell in unshare namespace from template and adds script to /nix/store
+- flake.nix invokes GNU Bash to run /nix/store script that builds external namespace environment
+- /nix/store script that builds external namespace environment
+  - invokes unshare to create namespace and run /nix/store script that builds internal namespace environment
+  - invokes slirp4netns to creat bridge network between unshare namespace and host network
+  - invokes nsenter to enter created unshare namespace and run /nix/store script that initializes shell in unshare namespace
 
-## Content In Addition To flake.nix And init_shell.ps1
-The rest of the content in this repository is for an experimental implementation
-of a software factory.  This can be discarded.
-
-If you remove the `workspace_root/process` or `workspace_root/product` directories,
-you will need to edit the flake.nix where it defines the BWRAP_ARGS for the workspace
-directory for both the GNU Bash scripts.
+## Implemented Features
+- From inside unshare Linux namespace
+  - Run OpenCode CLI / Web
+  - Build container images using Buildah
+  - Run container images using Podman
+  - Run kubectl to connect to Kubernetes clusters
+  - Run k9s to manage Kubernetes clusters
+- From outside unshare Linux namespace
+  - Configure set of Nix derivations (from nixpkgs or other locations) available to container namespace
+  - Connect to OpenCode Web running within namespace
+  - Access container user home directory and edit contents
+  - Persist container images pulled or created
+  - Share downloaded files between host namespace and container namespace
