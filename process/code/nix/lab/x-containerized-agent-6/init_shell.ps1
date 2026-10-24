@@ -24,10 +24,6 @@ if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.apps/lib")) {
     New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.apps/lib"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.container-mount")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.container-mount"
-}
-
 if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.opencode")) {
     New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.opencode"
 }

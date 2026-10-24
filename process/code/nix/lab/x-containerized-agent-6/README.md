@@ -28,21 +28,16 @@ On a computer system running NixOS Linux, using the following technology compone
 - Fix opencode Crash Within unshare-Created Namespace
 
 ## Current Issues
-- podman crashes because it is looking for needs "/sys/fs/cgroup"
-  - need to build out "/sys" within unshare namespace
-  - need separate network namespace within unshare namespace in order to define "/sys"
-  - need to use slirp4netns on host namespace to enable unshare network namespace to connect to network
-- "opencode serve" works but "opencode" does not
-- /proc is not owned by root namespace user
-- /sys is not owned by root namespace user
-- git view mismatch between host namespace and container namespace for workspace root files
+- FIXED: podman crashes because it is looking for needs "/sys/fs/cgroup"
+- FIXED: "opencode serve" works but "opencode" does not
+- NOT A PROBLEM:/proc is not owned by root namespace user
+- NOT A PROBLEM: /sys is not owned by root namespace user
+- FIXED: git view mismatch between host namespace and container namespace for workspace root files
   - files in workspace root are not in the container workspace
   - git in container believes these files are deleted and therefore want to commit these as changes
 
 ## Checks
 - fs ownerships
-  - /proc owned by root
-  - /sys owned by root
 - network
   - can ping local network IPv4 address
   - can query DNS for google.com

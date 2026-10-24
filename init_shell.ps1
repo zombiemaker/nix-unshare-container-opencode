@@ -24,13 +24,54 @@ if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.apps/lib")) {
     New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.apps/lib"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.downloads")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.downloads"
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.opencode")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.opencode"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/.temp")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/.temp"
+if (-not (Test-Path "$($env:TEMP)")) {
+    New-Item -ItemType Directory -Path "$($env:TEMP)"
 }
+
+if (-not (Test-Path "$($env:TEMP)/builds")) {
+    New-Item -ItemType Directory -Path "$($env:TEMP)/builds"
+}
+
+if (-not (Test-Path "$($env:TEMP)/downloads")) {
+    New-Item -ItemType Directory -Path "$($env:TEMP)/downloads"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/external/releases")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/external/releases"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/external/repos")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/external/repos"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/process/code/")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/process/code"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/process/data/")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/process/data"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/process/doc/")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/process/doc"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/product/code/")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/product/code"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/product/data/")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/product/data"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_DIR_PATH)/product/doc/")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_DIR_PATH)/product/doc"
+}
+
 
 if (-not (($env:PATH -split [System.IO.Path]::PathSeparator) -contains "$($env:VSC_WORKSPACE_DIR_PATH)/.apps /bin")) {
     Write-Host "Adding to PATH: $($env:VSC_WORKSPACE_DIR_PATH)/.apps/bin"
