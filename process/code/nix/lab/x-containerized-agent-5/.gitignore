@@ -12,6 +12,9 @@
 !build-unshare-internalEnv.template.bash
 !build-unshare-internalEnv-donothing.template.bash
 !start-unshare-shell.template.bash
+!x-unshare-nixos=v1.bash
+!x-unshare-nixos=v2.bash
+!x-unshare-ubuntu.bash
 !build-container.bash
 !container.file
 !README.md

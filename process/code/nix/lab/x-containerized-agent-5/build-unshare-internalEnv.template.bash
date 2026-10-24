@@ -18,65 +18,118 @@
 # - Run podman to run container images
 # - Access network
 
-echo "$@"
 
-script_name="$0"
-echo "Running script: $script_name"
-echo "Current working directory: $PWD"
-echo "User inside namespace: $(whoami)"
-echo "PID inside namespace: $$"
-echo "Granted full set of of all root capabilities including CAP_SYS_ADMIN" 
+NAMESPACE="Level 1 namespace (unshare)"
+script_name="$NAMESPACE: $0"
+echo "$NAMESPACE: running script: $script_name"
+echo "$NAMESPACE: script arguments: $@"
+echo "$NAMESPACE: current working directory: $PWD"
+echo "$NAMESPACE: user name: $(whoami)"
+echo "$NAMESPACE: PID: $$"
+echo "$NAMESPACE: granted full set of of all root capabilities including CAP_SYS_ADMIN" 
 
 set -eo pipefail
 
+echo "=== Verify 2-Way Anonymous Pipe Communication ==="
+# Test pipe to parent
+# Read from FD 3 (passed from parent)
+read -u 3 MESSAGE
+echo "[Child] Received from parent: $MESSAGE"
+
+# Write back to FD 4 (passed to parent)
+echo "Hello from inside the absolute quarantine!" >&4
+echo "=== FINISHED: Verify 2-Way Anonymous Pipe Communication ==="
+
+
 # Default script variable values
 DEBUG=false
-HOST_TEMP_PATH="./.temp"
-CONTAINER_MOUNT_HOST_PATH="$HOST_TEMP_PATH/container-mount"
-CONTAINER_FS_HOST_PATH="$HOST_TEMP_PATH/container-fs"
-CONTAINER_BIN_HOST_PATH="$CONTAINER_FS_HOST_PATH/bin"
-CONTAINER_ETC_HOST_PATH="$CONTAINER_FS_HOST_PATH/etc"
-CONTAINER_HOME_HOST_PATH="$CONTAINER_FS_HOST_PATH/home"
-CONTAINER_TEMP_HOST_PATH="$CONTAINER_FS_HOST_PATH/tmp"
-CONTAINER_BUILDAH_HOST_PATH="$CONTAINER_FS_HOST_PATH/buildah"
-CONTAINER_BUILDAH_RUNROOT_HOST_PATH="$CONTAINER_BUILDAH_HOST_PATH/runroot"
-CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH="$CONTAINER_BUILDAH_HOST_PATH/graphroot"
-CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH="$CONTAINER_BUILDAH_HOST_PATH/imagestore"
-CONTAINER_WORKSPACE_HOST_PATH="$CONTAINER_FS_HOST_PATH/workspace"
-CONTAINER_WORKSPACE_BUILDS_HOST_PATH="./.builds"
-CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH="./.downloads"
-CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH="./external"
-CONTAINER_WORKSPACE_GIT_HOST_PATH="./.gitt"
-CONTAINER_WORKSPACE_OPENCODE_HOST_PATH="./.opencode"
-CONTAINER_WORKSPACE_PROCESS_HOST_PATH="./process"
-CONTAINER_WORKSPACE_PRODUCT_HOST_PATH="./product"
 CONTAINER_USER_NAME="root"
-CONTAINER_USER_HOME_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME"
 CONTAINER_USER_UID=$(id -u)
 CONTAINER_USER_GID=$(id -g)
-CONTAINER_PATH="@agentToolsBinPaths@:/bin"
-CONTAINER_PS1="PS1="\[\e[0;36m\][🤖 \u@\h]\[\e[0;33m\][$(get_git_prompt)]\[\e[38;5;200m\][\w]\n\[\e[0;0m\]> "
-CONTAINER_TERM="${TERM:-xterm-256color}"
 
-# Make temp directories on host
-mkdir -p $HOST_TEMP_PATH
-mkdir -p $CONTAINER_MOUNT_HOST_PATH
-mkdir -p $CONTAINER_FS_HOST_PATH
-mkdir -p $CONTAINER_BIN_HOST_PATH
-mkdir -p $CONTAINER_ETC_HOST_PATH
-mkdir -p $CONTAINER_HOME_HOST_PATH
-mkdir -p $CONTAINER_TEMP_HOST_PATH
-mkdir -p $CONTAINER_BUILDAH_RUNROOT_HOST_PATH
-mkdir -p $CONTAINER_BUILDAH_GRAPHROOT_HOST_PATH
-mkdir -p $CONTAINER_BUILDAH_IMAGESTORE_HOST_PATH
-mkdir -p $CONTAINER_USER_HOME_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_BUILDS_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_OPENCODE_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_PROCESS_HOST_PATH
-mkdir -p $CONTAINER_WORKSPACE_PRODUCT_HOST_PATH
+HOST_PATH_WORKSPACE=$(realpath .)
+HOST_PATH_WORKSPACE_TEMP="$HOST_PATH_WORKSPACE/.temp"
+HOST_PATH_WORKSPACE_BUILDS="$HOST_PATH_WORKSPACE_TEMP/builds"
+HOST_PATH_WORKSPACE_DOWNLOADS="$HOST_PATH_WORKSPACE_TEMP/downloads"
+HOST_PATH_WORKSPACE_EXTERNAL="$HOST_PATH_WORKSPACE/external"
+HOST_PATH_WORKSPACE_GIT="$HOST_PATH_WORKSPACE/.git"
+HOST_PATH_WORKSPACE_GITIGNORE="$HOST_PATH_WORKSPACE/.gitignore"
+HOST_PATH_WORKSPACE_OPENCODE="$HOST_PATH_WORKSPACE/.opencode"
+HOST_PATH_WORKSPACE_PROCESS="$HOST_PATH_WORKSPACE/process"
+HOST_PATH_WORKSPACE_PRODUCT="$HOST_PATH_WORKSPACE/product"
+# HOST_PATH_CONTAINER_* are host paths to container file system directories
+HOST_PATH_CONTAINER_FS=$(realpath "$HOST_PATH_WORKSPACE_TEMP/container-fs")
+HOST_PATH_CONTAINER_BIN="$HOST_PATH_CONTAINER_FS/bin"
+HOST_PATH_CONTAINER_ETC="$HOST_PATH_CONTAINER_FS/etc"
+HOST_PATH_CONTAINER_HOME="$HOST_PATH_CONTAINER_FS/home"
+HOST_PATH_CONTAINER_TEMP="$HOST_PATH_CONTAINER_FS/tmp"
+HOST_PATH_CONTAINER_WORKSPACE="$HOST_PATH_CONTAINER_FS/workspace"
+HOST_PATH_CONTAINER_WORKSPACE_TEMP="$HOST_PATH_CONTAINER_WORKSPACE/.temp"
+HOST_PATH_CONTAINER_WORKSPACE_BUILDS="$HOST_PATH_CONTAINER_WORKSPACE_TEMP/builds"
+HOST_PATH_CONTAINER_WORKSPACE_DOWNLOADS="$HOST_PATH_CONTAINER_WORKSPACE_TEMP/downloads"
+HOST_PATH_CONTAINER_WORKSPACE_EXTERNAL="$HOST_PATH_CONTAINER_WORKSPACE/external"
+HOST_PATH_CONTAINER_WORKSPACE_GIT="$HOST_PATH_CONTAINER_WORKSPACE/.git"
+HOST_PATH_CONTAINER_WORKSPACE_GITIGNORE="$HOST_PATH_CONTAINER_WORKSPACE/.gitignore"
+HOST_PATH_CONTAINER_WORKSPACE_OPENCODE="$HOST_PATH_CONTAINER_WORKSPACE/.opencode"
+HOST_PATH_CONTAINER_WORKSPACE_PROCESS="$HOST_PATH_CONTAINER_WORKSPACE/process"
+HOST_PATH_CONTAINER_WORKSPACE_PRODUCT="$HOST_PATH_CONTAINER_WORKSPACE/product"
+HOST_PATH_CONTAINER_USER_HOME="$HOST_PATH_CONTAINER_HOME/$CONTAINER_USER_NAME"
+HOST_PATH_CONTAINER_BUILDAH="$HOST_PATH_CONTAINER_FS/buildah"
+HOST_PATH_CONTAINER_BUILDAH_RUNROOT="$HOST_PATH_CONTAINER_BUILDAH/runroot"
+HOST_PATH_CONTAINER_BUILDAH_GRAPHROOT="$HOST_PATH_CONTAINER_BUILDAH/graphroot"
+HOST_PATH_CONTAINER_BUILDAH_IMAGESTORE="$HOST_PATH_CONTAINER_BUILDAH/imagestore"
+
+
+# CONTAINER_PATH_* are container paths to container file system directories
+# NOTE: paths in container workspace have to match relative location to host .git
+CONTAINER_PATH_WORKSPACE="/workspace"
+CONTAINER_PATH_WORKSPACE_TEMP="$CONTAINER_PATH_WORKSPACE/.temp"
+CONTAINER_PATH_WORKSPACE_BUILDS="$CONTAINER_PATH_WORKSPACE_TEMP/builds"
+CONTAINER_PATH_WORKSPACE_DOWNLOADS="$CONTAINER_PATH_WORKSPACE_TEMP/downloads"
+CONTAINER_PATH_WORKSPACE_EXTERNAL="$CONTAINER_PATH_WORKSPACE/external"
+CONTAINER_PATH_WORKSPACE_GIT="$CONTAINER_PATH_WORKSPACE/.git"
+CONTAINER_PATH_WORKSPACE_GITIGNORE="$CONTAINER_PATH_WORKSPACE/.gitignore"
+CONTAINER_PATH_WORKSPACE_OPENCODE="$CONTAINER_PATH_WORKSPACE/.opencode"
+CONTAINER_PATH_WORKSPACE_PROCESS="$CONTAINER_PATH_WORKSPACE/process"
+CONTAINER_PATH_WORKSPACE_PRODUCT="$CONTAINER_PATH_WORKSPACE/product"
+CONTAINER_PATH_CONTAINER_USER_HOME="/home/$CONTAINER_USER_NAME"
+CONTAINER_PATH_BUILDAH="/buildah"
+CONTAINER_ENV_VAR_PATH="@agentToolsBinPaths@:/bin"
+
+# HOST_PATH_CONTAINER_MOUNT_* = {HOST_PATH_CONTAINER_MOUNT} + {CONTAINER_PATH_*}
+# NOTE: host path to directory for container mounts
+HOST_PATH_CONTAINER_MOUNT="$HOST_PATH_WORKSPACE_TEMP/container-mount"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_TEMP="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_TEMP}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_EXTERNAL="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_EXTERNAL}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_GIT="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_GIT}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_GITIGNORE="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_GITIGNORE}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_OPENCODE="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_OPENCODE}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_PROCESS="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_PROCESS}"
+HOST_PATH_CONTAINER_MOUNT_WORKSPACE_PRODUCT="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_WORKSPACE_PRODUCT}"
+HOST_PATH_CONTAINER_MOUNT_BUILDAH="${HOST_PATH_CONTAINER_MOUNT}${CONTAINER_PATH_BUILDAH}"
+
+# Make container mount directories on host
+[[ -d $HOST_PATH_CONTAINER_FS ]] || mkdir -p $HOST_PATH_CONTAINER_FS
+[[ -d $HOST_PATH_CONTAINER_BIN ]] || mkdir -p $HOST_PATH_CONTAINER_BIN
+[[ -d $HOST_PATH_CONTAINER_ETC ]] || mkdir -p $HOST_PATH_CONTAINER_ETC
+[[ -d $HOST_PATH_CONTAINER_HOME ]] || mkdir -p $HOST_PATH_CONTAINER_HOME
+[[ -d $HOST_PATH_CONTAINER_TEMP ]] || mkdir -p $HOST_PATH_CONTAINER_TEMP
+[[ -d $HOST_PATH_CONTAINER_USER_HOME ]] || mkdir -p $HOST_PATH_CONTAINER_USER_HOME
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_TEMP ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_TEMP
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_BUILDS ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_BUILDS
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_DOWNLOADS ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_DOWNLOADS
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_EXTERNAL ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_EXTERNAL
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_GIT ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_GIT
+[[ -f $HOST_PATH_CONTAINER_WORKSPACE_GITIGNORE ]] || touch $HOST_PATH_CONTAINER_WORKSPACE_GITIGNORE
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_OPENCODE ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_OPENCODE
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_PROCESS ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_PROCESS
+[[ -d $HOST_PATH_CONTAINER_WORKSPACE_PRODUCT ]] || mkdir -p $HOST_PATH_CONTAINER_WORKSPACE_PRODUCT
+[[ -d $HOST_PATH_CONTAINER_BUILDAH_RUNROOT ]] || mkdir -p $HOST_PATH_CONTAINER_BUILDAH_RUNROOT
+[[ -d $HOST_PATH_CONTAINER_BUILDAH_GRAPHROOT ]] || mkdir -p $HOST_PATH_CONTAINER_BUILDAH_GRAPHROOT
+[[ -d $HOST_PATH_CONTAINER_BUILDAH_IMAGESTORE ]] || mkdir -p $HOST_PATH_CONTAINER_BUILDAH_IMAGESTORE
+[[ -d $HOST_PATH_CONTAINER_MOUNT ]] || mkdir -p $HOST_PATH_CONTAINER_MOUNT
 
 
 # Evaluate the list and bake a standard space-separated Bash array definition right here
@@ -160,23 +213,21 @@ echo "=== FINISHED: Configure unshare Network Namespace ==="
 # Inside the namespace, we are root and have CAP_SYS_ADMIN.
 
 # Setting enironment variables
-PATH="$CONTAINER_PATH"      
+PATH="$CONTAINER_ENV_VAR_PATH"      
 
 # Force all inherited host mounts to be private inside this namespace so
 # changes do not attempt to propagate back to the host.
 mount --make-rprivate /
 
-# Create a clean, blank slate for our new root filesystem
-export SANDBOX_ROOT=$(realpath $CONTAINER_MOUNT_HOST_PATH)
-
-echo "=== Preparing Sandbox Root at $SANDBOX_ROOT ==="
+echo "=== Preparing Sandbox Root at $HOST_PATH_CONTAINER_MOUNT ==="
 
 # Ensure the base sandbox root exists and is turned into a mount point (required for pivot_root)
-# NOTE: must use absolute path for the value for SANDBOX_ROOT otherwise pivot_root will have issues
-mount -t tmpfs -o exec,mode=0755 tmpfs "$SANDBOX_ROOT"
-mount --make-private "$SANDBOX_ROOT"
-mkdir -p "$SANDBOX_ROOT"/{dev,proc,sys,bin,buildah,etc,home,nix,run,tmp,usr/bin,workspace}
-mkdir -p "$SANDBOX_ROOT/workspace"/{.git,.opencode,builds,downloads,external,process,product}
+# NOTE: must use absolute path for the value for HOST_PATH_CONTAINER_FS otherwise pivot_root will have issues
+# NOTE: using tmpfs results in any sub-items created using mount directory does not affect the real host mount directory
+mount -t tmpfs -o exec,mode=0755 tmpfs $HOST_PATH_CONTAINER_MOUNT
+mount --make-private $HOST_PATH_CONTAINER_MOUNT
+mkdir -p $HOST_PATH_CONTAINER_MOUNT/{dev,proc,sys,bin,etc,home,nix,run,tmp,usr/bin,workspace}
+mkdir -p $HOST_PATH_CONTAINER_MOUNT/workspace/{.git,.opencode,.temp/builds,.temp/downloads,external,process,product}
 
 
 echo "=== Bind Mount Nix Store Paths ==="
@@ -191,8 +242,8 @@ for source_path in "${NIX_STORE_PATHS[@]}"; do
 	fi
 
 	# Mirror the exact path structure relative to the sandbox root
-	# Example: /nix/store/.../bin/bash becomes $SANDBOX_ROOT/nix/store/.../bin/bash
-	dest_path="${SANDBOX_ROOT}${source_path}"
+	# Example: /nix/store/.../bin/bash becomes $HOST_PATH_CONTAINER_MOUNT/nix/store/.../bin/bash
+	dest_path="${HOST_PATH_CONTAINER_MOUNT}${source_path}"
 
 	if [ -d "$source_path" ]; then
 		# Case A: Source is a directory
@@ -212,115 +263,123 @@ for source_path in "${NIX_STORE_PATHS[@]}"; do
 done
 
 # Making the start shell script wrapper available within namespace to be called later by script that initiated this script
-mkdir -p "${SANDBOX_ROOT}@startShellScriptShellWrapper_nixStorePath@"
-mount --bind "@startShellScriptShellWrapper_nixStorePath@" "${SANDBOX_ROOT}@startShellScriptShellWrapper_nixStorePath@"
+mkdir -p "${HOST_PATH_CONTAINER_MOUNT}@startShellScriptShellWrapper_nixStorePath@"
+mount --bind "@startShellScriptShellWrapper_nixStorePath@" "${HOST_PATH_CONTAINER_MOUNT}@startShellScriptShellWrapper_nixStorePath@"
 echo "=== FINISHED: Bind Mount Nix Store Paths ==="
-
-
-echo "=== Linking GNU Bash & Env ==="
-ln -s "@bashInteractive_nixStorePath@/bin/bash" "$SANDBOX_ROOT/bin/bash"
-ln -s "@bashInteractive_nixStorePath@/bin/bash" "$SANDBOX_ROOT/bin/sh"
-ln -s "@coreutils_nixStorePath@/bin/env"        "$SANDBOX_ROOT/bin/env"
-ln -s "@coreutils_nixStorePath@/bin/env"        "$SANDBOX_ROOT/usr/bin/env"
-echo "=== FINISHED: Linking GNU Bash & Env ==="
 
 
 echo "=== Bind Mount For /dev ==="
 # NOTE: opencode needs /dev to configured correctly to work (not sure what)
-mount -t tmpfs -o mode=0755 tmpfs "$SANDBOX_ROOT/dev"
+mount -t tmpfs -o mode=0755 tmpfs "$HOST_PATH_CONTAINER_MOUNT/dev"
 touch \
-    "$SANDBOX_ROOT/dev/full" \
-	"$SANDBOX_ROOT/dev/null" \
-    "$SANDBOX_ROOT/dev/random" \
-    "$SANDBOX_ROOT/dev/tty" \
-    "$SANDBOX_ROOT/dev/urandom" \
-    "$SANDBOX_ROOT/dev/zero"
+    "$HOST_PATH_CONTAINER_MOUNT/dev/full" \
+	"$HOST_PATH_CONTAINER_MOUNT/dev/null" \
+    "$HOST_PATH_CONTAINER_MOUNT/dev/random" \
+    "$HOST_PATH_CONTAINER_MOUNT/dev/tty" \
+    "$HOST_PATH_CONTAINER_MOUNT/dev/urandom" \
+    "$HOST_PATH_CONTAINER_MOUNT/dev/zero"
 
 # /proc/self/fd is not a standard directory; it is a dynamic, magical gateway managed by the procfs kernel driver
 # "ln -s" will reference the "/proc" path within the unshare namespace not the host namespace
-ln -s /proc/self/fd      "$SANDBOX_ROOT/dev/fd"
-ln -s /proc/self/fd/0    "$SANDBOX_ROOT/dev/stdin"
-ln -s /proc/self/fd/1    "$SANDBOX_ROOT/dev/stdout"
-ln -s /proc/self/fd/2    "$SANDBOX_ROOT/dev/stderr"
+ln -s /proc/self/fd      	"$HOST_PATH_CONTAINER_MOUNT/dev/fd"
+ln -s /proc/self/fd/0    	"$HOST_PATH_CONTAINER_MOUNT/dev/stdin"
+ln -s /proc/self/fd/1    	"$HOST_PATH_CONTAINER_MOUNT/dev/stdout"
+ln -s /proc/self/fd/2    	"$HOST_PATH_CONTAINER_MOUNT/dev/stderr"
 
-mount --bind /dev/full    		"$SANDBOX_ROOT/dev/full"
-mount --bind /dev/null 			"$SANDBOX_ROOT/dev/null"
-mount --bind /dev/random  		"$SANDBOX_ROOT/dev/random"
-mount --bind /dev/tty     		"$SANDBOX_ROOT/dev/tty"
-mount --bind /dev/urandom 		"$SANDBOX_ROOT/dev/urandom"
-mount --bind /dev/zero    		"$SANDBOX_ROOT/dev/zero"
+mount --bind /dev/full    	"$HOST_PATH_CONTAINER_MOUNT/dev/full"
+mount --bind /dev/null 		"$HOST_PATH_CONTAINER_MOUNT/dev/null"
+mount --bind /dev/random  	"$HOST_PATH_CONTAINER_MOUNT/dev/random"
+mount --bind /dev/tty     	"$HOST_PATH_CONTAINER_MOUNT/dev/tty"
+mount --bind /dev/urandom 	"$HOST_PATH_CONTAINER_MOUNT/dev/urandom"
+mount --bind /dev/zero    	"$HOST_PATH_CONTAINER_MOUNT/dev/zero"
 
-mkdir -p "$SANDBOX_ROOT/dev/pts"
-mount -t devpts -o newinstance,ptmxmode=0666,mode=0620 devpts "$SANDBOX_ROOT/dev/pts"
-rm -f "$SANDBOX_ROOT/dev/ptmx"
-ln -s pts/ptmx "$SANDBOX_ROOT/dev/ptmx"
+mkdir -p "$HOST_PATH_CONTAINER_MOUNT/dev/pts"
+mount -t devpts -o newinstance,ptmxmode=0666,mode=0620 devpts "$HOST_PATH_CONTAINER_MOUNT/dev/pts"
+rm -f "$HOST_PATH_CONTAINER_MOUNT/dev/ptmx"
+ln -s pts/ptmx "$HOST_PATH_CONTAINER_MOUNT/dev/ptmx"
 echo "=== FINISHED: Bind Mount For /dev ==="
 
 
 echo "=== Bind Mount For General System ==="
-mount --bind $CONTAINER_BIN_HOST_PATH "$SANDBOX_ROOT/bin"
-mount --bind $CONTAINER_ETC_HOST_PATH "$SANDBOX_ROOT/etc"
-mount --bind $CONTAINER_HOME_HOST_PATH "$SANDBOX_ROOT/home"
-# mount --bind -o exec $CONTAINER_TEMP_HOST_PATH "$SANDBOX_ROOT/tmp"
-mount -t tmpfs -o exec,mode=1777 tmpfs "$SANDBOX_ROOT/tmp"
+mount --bind $HOST_PATH_CONTAINER_BIN 	"$HOST_PATH_CONTAINER_MOUNT/bin"
+mount --bind $HOST_PATH_CONTAINER_ETC 	"$HOST_PATH_CONTAINER_MOUNT/etc"
+mount --bind $HOST_PATH_CONTAINER_HOME 	"$HOST_PATH_CONTAINER_MOUNT/home"
+mount -t tmpfs -o exec,mode=1777 tmpfs 	"$HOST_PATH_CONTAINER_MOUNT/tmp"
 
-# podman looks for "/sys/fs/cgroup"
-# to mount sysfs sysfs need to configure unshare with "--net" so that the unshare 
-# namespace owns its own network namespace
-mount -t sysfs sysfs "$SANDBOX_ROOT/sys"
+mount -t tmpfs sys "$HOST_PATH_CONTAINER_MOUNT/sys"
+mkdir -p "$HOST_PATH_CONTAINER_MOUNT/sys/devices/system/cpu"
+touch "$HOST_PATH_CONTAINER_MOUNT/sys/devices/system/cpu/online"
+echo "0-15" > "$HOST_PATH_CONTAINER_MOUNT/sys/devices/system/cpu/online"
 
-touch "$SANDBOX_ROOT/etc/resolv.conf"
-mount --bind /etc/resolv.conf "$SANDBOX_ROOT/etc/resolv.conf"
+# NOTE: podman looks for "/sys/fs/cgroup"
+# NOTE: to mount sysfs sysfs need to configure unshare with "--net" so that the unshare 
+#       namespace owns its own network namespace
+# NOTE: using this mounting for /sys breaks buildah and opencode
+# mount -t sysfs sysfs "$HOST_PATH_CONTAINER_MOUNT/sys"
 
-mkdir -p "$SANDBOX_ROOT/etc/ssl/certs"
-mount --bind "@cacert_nixStorePath@/etc/ssl/certs" "$SANDBOX_ROOT/etc/ssl/certs"
+touch "$HOST_PATH_CONTAINER_MOUNT/etc/resolv.conf"
+mount --bind /etc/resolv.conf "$HOST_PATH_CONTAINER_MOUNT/etc/resolv.conf"
+
+mkdir -p "$HOST_PATH_CONTAINER_MOUNT/etc/ssl/certs"
+mount --bind "@cacert_nixStorePath@/etc/ssl/certs" "$HOST_PATH_CONTAINER_MOUNT/etc/ssl/certs"
 
 
 # Replicate the minimal /run path OpenCode searches for on NixOS
-mkdir -p "$SANDBOX_ROOT/run/current-system/sw/bin"
-ln -s "@bashInteractive_nixStorePath@/bin/bash" "$SANDBOX_ROOT/run/current-system/sw/bin/bash"
+mkdir -p "$HOST_PATH_CONTAINER_MOUNT/run/current-system/sw/bin"
+ln -s "@bashInteractive_nixStorePath@/bin/bash" "$HOST_PATH_CONTAINER_MOUNT/run/current-system/sw/bin/bash"
 
 # Bind standard NixOS library fallbacks if present
 # if [ -d /lib64 ]; then
-#   mkdir -p "$SANDBOX_ROOT/lib64"
-#   mount --bind /lib64 "$SANDBOX_ROOT/lib64"
-#   mount -o remount,ro,bind "$SANDBOX_ROOT/lib64"
+#   mkdir -p "$HOST_PATH_CONTAINER_MOUNT/lib64"
+#   mount --bind /lib64 "$HOST_PATH_CONTAINER_MOUNT/lib64"
+#   mount -o remount,ro,bind "$HOST_PATH_CONTAINER_MOUNT/lib64"
 # fi
 echo "=== FINISHED: Bind Mount For General System ==="
 
 
 echo "=== Bind Mount For Fuse OverlayFS ==="
-touch "$SANDBOX_ROOT/dev/fuse"
-mount --bind /dev/fuse "$SANDBOX_ROOT/dev/fuse"
-touch "$SANDBOX_ROOT/usr/bin/fuse-overlayfs"
-mount --bind -o exec "@fuse_overlayfs_nixStorePath@/bin/fuse-overlayfs" "$SANDBOX_ROOT/usr/bin/fuse-overlayfs"
+touch "$HOST_PATH_CONTAINER_MOUNT/dev/fuse"
+mount --bind /dev/fuse "$HOST_PATH_CONTAINER_MOUNT/dev/fuse"
+touch "$HOST_PATH_CONTAINER_MOUNT/usr/bin/fuse-overlayfs"
+mount --bind -o exec "@fuse_overlayfs_nixStorePath@/bin/fuse-overlayfs" "$HOST_PATH_CONTAINER_MOUNT/usr/bin/fuse-overlayfs"
 echo "=== FINISHED: Bind Mount For Fuse OverlayFS ==="
 
 
+echo "=== Linking GNU Bash & Env ==="
+[[ -f "$HOST_PATH_CONTAINER_MOUNT/bin/bash" ]] || ln -s "@bashInteractive_nixStorePath@/bin/bash" "$HOST_PATH_CONTAINER_MOUNT/bin/bash"
+[[ -f "$HOST_PATH_CONTAINER_MOUNT/bin/sh" ]] || ln -s "@bashInteractive_nixStorePath@/bin/bash" "$HOST_PATH_CONTAINER_MOUNT/bin/sh"
+[[ -f "$HOST_PATH_CONTAINER_MOUNT/bin/env" ]] || ln -s "@coreutils_nixStorePath@/bin/env" "$HOST_PATH_CONTAINER_MOUNT/bin/env"
+[[ -f "$HOST_PATH_CONTAINER_MOUNT/usr/bin/env" ]] || ln -s "@coreutils_nixStorePath@/bin/env" "$HOST_PATH_CONTAINER_MOUNT/usr/bin/env"
+echo "=== FINISHED: Linking GNU Bash & Env ==="
+
+
 echo "=== Bind Mount For Buildah ==="
-mount --bind $CONTAINER_BUILDAH_HOST_PATH "$SANDBOX_ROOT/buildah"
+mkdir -p $HOST_PATH_CONTAINER_MOUNT_BUILDAH
+mount --bind $HOST_PATH_CONTAINER_BUILDAH 		$HOST_PATH_CONTAINER_MOUNT_BUILDAH
 echo "=== FINISHED: Bind Mount For Buildah ==="
 
 
+# NOTE: all mount directories created earlier
 echo "=== Bind Mount For Workspace ==="
-mount --bind $CONTAINER_WORKSPACE_BUILDS_HOST_PATH "$SANDBOX_ROOT/workspace/builds"
-mount --bind $CONTAINER_WORKSPACE_DOWNLOADS_HOST_PATH "$SANDBOX_ROOT/workspace/downloads"
-mount --bind $CONTAINER_WORKSPACE_EXTERNAL_HOST_PATH "$SANDBOX_ROOT/workspace/external"
-mount --bind $CONTAINER_WORKSPACE_GIT_HOST_PATH "$SANDBOX_ROOT/workspace/.git"
-mount --bind $CONTAINER_WORKSPACE_OPENCODE_HOST_PATH "$SANDBOX_ROOT/workspace/.opencode"
-mount --bind $CONTAINER_WORKSPACE_PROCESS_HOST_PATH "$SANDBOX_ROOT/workspace/process"
-mount --bind $CONTAINER_WORKSPACE_PRODUCT_HOST_PATH "$SANDBOX_ROOT/workspace/product"
+touch $HOST_PATH_CONTAINER_MOUNT_WORKSPACE_GITIGNORE
+mount --bind $HOST_PATH_WORKSPACE_TEMP 			$HOST_PATH_CONTAINER_WORKSPACE_TEMP
+mount --bind $HOST_PATH_WORKSPACE_EXTERNAL 		$HOST_PATH_CONTAINER_MOUNT_WORKSPACE_EXTERNAL
+mount --bind $HOST_PATH_WORKSPACE_GIT 			$HOST_PATH_CONTAINER_MOUNT_WORKSPACE_GIT
+mount --bind $HOST_PATH_WORKSPACE_GITIGNORE 	$HOST_PATH_CONTAINER_MOUNT_WORKSPACE_GITIGNORE
+mount --bind $HOST_PATH_WORKSPACE_OPENCODE 		$HOST_PATH_CONTAINER_MOUNT_WORKSPACE_OPENCODE
+mount --bind $HOST_PATH_WORKSPACE_PROCESS 		$HOST_PATH_CONTAINER_MOUNT_WORKSPACE_PROCESS
+mount --bind $HOST_PATH_WORKSPACE_PRODUCT 		$HOST_PATH_CONTAINER_MOUNT_WORKSPACE_PRODUCT
 echo "=== FINISHED: Bind Mount For Workspace ==="
 
 
 echo "=== Create Configuration Files ==="
 # Container /etc/passwd and /etc/group      
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/passwd"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/passwd"
 root:x:0:0:root:/root:/bin/bash
 $CONTAINER_USER_NAME:x:$CONTAINER_USER_UID:$CONTAINER_USER_GID:$CONTAINER_USER_NAME:/home/$CONTAINER_USER_NAME:/bin/bash
 EOF
 
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/group"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/group"
 root:x:0:
 $CONTAINER_USER_NAME:x:$CONTAINER_USER_GID:
 EOF
@@ -328,7 +387,7 @@ EOF
 
 # Container /etc/subuid and /etc/subgid
 # NOTE: buildah needs both host namespace and unshare namespace subuid and subgid configured correctly
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/subuid"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/subuid"
 # This defines UID allocation for level 2 namespace from the perspective of level 1 namespace
 # Level 0 namespace = host machine namespace
 # Level 1 namespace = unshare namespace
@@ -336,7 +395,7 @@ cat <<EOF > "$CONTAINER_ETC_HOST_PATH/subuid"
 root:1000:10000
 EOF
 
-cat <<EOF >  "$CONTAINER_ETC_HOST_PATH/subgid"
+cat <<EOF >  "$HOST_PATH_CONTAINER_ETC/subgid"
 # This defines GID allocation for level 2 namespace from the perspective of level 1 namespace
 # Level 0 namespace = host machine namespace
 # Level 1 namespace = unshare namespace
@@ -346,10 +405,10 @@ EOF
 
 
 # Container /etc/containers
-mkdir -p "$CONTAINER_ETC_HOST_PATH/containers"
+mkdir -p "$HOST_PATH_CONTAINER_ETC/containers"
 
 # /etc/containers/containers.conf
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/containers.conf"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/containers/containers.conf"
 [engine]
 # Explicitly forces chroot behavior at the engine layer
 isolation = "chroot"
@@ -362,7 +421,7 @@ EOF
 # /etc/containers/storage.conf
 # Create a local storage.conf to force Buildah to use the fuse-overlafs overlay driver
 # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/storage.conf"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/containers/storage.conf"
 [storage]
 driver = "overlay"
 
@@ -381,7 +440,7 @@ EOF
 
 
 # /etc/containers/registries.conf
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/registries.conf"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/containers/registries.conf"
 # /etc/containers/registries.conf
 # This is the system-wide configuration file for container image registries 
 # used by Buildah, Podman, and Skopeo.
@@ -427,7 +486,7 @@ EOF
 
 
 # /etc/containers/policy.json
-cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/policy.json"
+cat <<EOF > "$HOST_PATH_CONTAINER_ETC/containers/policy.json"
 {
 "default": [
     {
@@ -469,8 +528,8 @@ cat <<EOF > "$CONTAINER_ETC_HOST_PATH/containers/policy.json"
 }
 EOF
 
-mkdir -p "$CONTAINER_USER_HOME_HOST_PATH/.config/opencode"
-cat <<EOF > "$CONTAINER_USER_HOME_HOST_PATH/.config/opencode/opencode.json"
+mkdir -p "$HOST_PATH_CONTAINER_USER_HOME/.config/opencode"
+cat <<EOF > "$HOST_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.json"
 {
   "$schema": "https://opencode.ai/config.json",
   "disableBuiltInProviders": true,
@@ -510,17 +569,22 @@ echo "=== FINISHED: Create Configuration Files ==="
 
 echo "=== Switch Root Directory ==="
 # Trick to to completely vanish old root without even needing a temporary directory
-cd "$SANDBOX_ROOT"
+cd "$HOST_PATH_CONTAINER_MOUNT"
 
 # Pivot root directly onto itself. This puts the NEW root at / and the OLD root at / (overlapped)
-mkdir -p "$SANDBOX_ROOT/old_root"
+mkdir -p "$HOST_PATH_CONTAINER_MOUNT/old_root"
 pivot_root . old_root
+
+echo "***** pre-mount: /proc  *****"
+ls -la /proc
+
+mount -t proc proc /proc
+
+echo "***** post-mount: /proc *****"
+ls -la /proc
 
 # Create file to signal to host namespace process that internal environment is ready
 touch "old_root/$INTERNAL_ENV_READY_FILE_PATH"
-
-# Re-mount your essential kernel filesystems inside the new root
-mount -t proc proc /proc
 
 # Lazily unmount the old root (which is pinned underneath '.')
 umount -l old_root
@@ -528,6 +592,8 @@ rmdir old_root
 
 # Move into the new root 
 cd /workspace
+
+
 
 # Verify that Nix store path to start shell 
 if [ -d "@startShellScriptShellWrapper_nixStorePath@" ]; then
@@ -540,7 +606,8 @@ echo "=== FINISHED: Switch Root Directory ==="
 
 
 echo "=== Create Files For Future nsenter Sessions ==="
-cat <<EOF >"/home/$CONTAINER_USER_NAME/.bash_profile"
+# quoting EOF to prevent Bash expansion
+cat <<'EOF' >"$CONTAINER_PATH_CONTAINER_USER_HOME/.bash_profile"
 #!/usr/bin/env bash
 
 # If running bash, source the user's .bashrc if it exists
@@ -550,37 +617,45 @@ fi
 EOF
 
 
-cat <<EOF >"/home/$CONTAINER_USER_NAME/.bashrc"
+cat <<EOF >"$CONTAINER_PATH_CONTAINER_USER_HOME/.bashrc"
 #!/usr/bin/env bash
 
 # Used for every new interactive terminal session
 export CONTAINER_RUNTIME=crun
-export HOME="/home/$CONTAINER_USER_NAME"
-export PATH="$CONTAINER_PATH"
+export HOME="$CONTAINER_PATH_CONTAINER_USER_HOME"
+export PATH="$CONTAINER_ENV_VAR_PATH"
 export USER="$CONTAINER_USER_NAME"
 export TEMP="/tmp"
 export TEMPDIR="/tmp"
 export TMP="/tmp"
 export TMPDIR="/tmp"
 export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-TERM="$CONTAINER_TERM"
-PS1="$CONTAINER_PS1"
+
+# NOTE: source must precede usage of functions defined in functions.bash
+source ~/functions.bash
+
+# NOTE: escaped Bash expansion for TERM
+TERM="\${TERM:-xterm-256color}"
+
+# NOTE: escaped Bash expansion for get_git_prompt
+PS1="\[\e[0;36m\][🤖 \u@\h]\[\e[0;33m\][\$(get_git_prompt)]\[\e[38;5;200m\][\w]\n\[\e[0;0m\]> "
 
 # check for terminal window resizing
 shopt -s checkwinsize
 
-source ~/functions.bash
 EOF
 
-cat <<EOF >"/home/$CONTAINER_USER_NAME/.env"
+cat <<EOF >"$CONTAINER_PATH_CONTAINER_USER_HOME/.env"
 EOF
 
-cat <<EOF >"/home/$CONTAINER_USER_NAME/functions.bash"
+# quoting EOF to prevent Bash expansion
+cat <<'EOF' >"$CONTAINER_PATH_CONTAINER_USER_HOME/functions.bash"
 #!/usr/bin/env bash
 
 get_git_prompt() {
     # Check if we are inside a git repository
     if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+        printf 'no-git'
         return
     fi
 
@@ -614,8 +689,9 @@ get_git_prompt() {
         counts=$(git rev-list --left-right --count HEAD...@{u} 2>/dev/null)
         local ahead
         local behind
-        ahead=$(echo "$counts" | cut -f1)
-        behind=$(echo "$counts" | cut -f2)
+        # ahead=$(echo "$counts" | cut -f1)
+        # behind=$(echo "$counts" | cut -f2)
+        read -r ahead behind <<< "$counts"
 
         if (( ahead > 0 )); then
             ahead_behind+="⇡"
@@ -626,7 +702,8 @@ get_git_prompt() {
     fi
 
     # Output the formatted prompt segment
-    echo "($branch$dirty$untracked$ahead_behind)"
+    # echo "($branch$dirty$untracked$ahead_behind)"
+    printf '(%s%s%s%s)' "$branlsch" "$dirty" "$untracked" "$ahead_behind"
 }
 
 check_executables() {
@@ -658,6 +735,9 @@ check_executables() {
         fi
     done
 }
+
+export -f get_git_prompt
+export -f check_executables
 EOF
 
 echo "=== FINISHED: Create Files For Future nsenter Sessions ==="

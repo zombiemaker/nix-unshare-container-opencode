@@ -67,6 +67,8 @@
             "PATH": "${workspaceFolder}/.apps/bin:${workspaceFolder}/.apps/go/bin:${env:PATH}",
     },
     "terminal.integrated.defaultProfile.linux": "Workspace GNU Bash",
+    "terminal.integrated.letterSpacing": 1,
+    "terminal.integrated.fontFamily": "'JetBrainsMono Nerd Font','Cascadia Mono','CommitMono Nerd Font Mono', 'Apple Color Emoji', 'Segoe UI Emoji', monospace",
     "go.gopath": "",
     "go.inferGopath": true,
     "go.testEnvVars": {},

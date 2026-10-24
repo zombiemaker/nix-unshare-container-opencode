@@ -1,2 +1,2 @@
 #!/usr/bin/env bash
-buildah build -f ./containerfile
+buildah build -f ./test_image.containerfile

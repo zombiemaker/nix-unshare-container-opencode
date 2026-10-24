@@ -32,9 +32,24 @@ On a computer system running NixOS Linux, using the following technology compone
   - need to build out "/sys" within unshare namespace
   - need separate network namespace within unshare namespace in order to define "/sys"
   - need to use slirp4netns on host namespace to enable unshare network namespace to connect to network
+- "opencode serve" works but "opencode" does not
+- /proc is not owned by root namespace user
+- /sys is not owned by root namespace user
+- git view mismatch between host namespace and container namespace for workspace root files
+  - files in workspace root are not in the container workspace
+  - git in container believes these files are deleted and therefore want to commit these as changes
 
-## Bugs
-- buildah still uses quay.io registry even when /etc/containers/registry.conf does not define it
+## Checks
+- fs ownerships
+  - /proc owned by root
+  - /sys owned by root
+- network
+  - can ping local network IPv4 address
+  - can query DNS for google.com
+  - local network client can connect to IPv4 port
+- git
+  - can 
+
 
 ## Capabilities To Be Implemented
 - Run podman and run container images

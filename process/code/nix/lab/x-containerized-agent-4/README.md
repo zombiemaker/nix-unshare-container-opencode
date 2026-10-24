@@ -1,5 +1,9 @@
 # Goal: Fix opencode Crash Within unshare-Created Namespace
 
+## Bugs
+
+
+## opencode Crash Within unshare-Created Namespace
 ```bash
 export LD_DEBUG=libs
 

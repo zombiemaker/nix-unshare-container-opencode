@@ -41,12 +41,12 @@ if [ -z "$IN_NAMESPACE" ]; then
 	# --map-users <level 1 namespace uid>:<level 0 namespace uid>:<number of uids>
 	# --map-groups <level 1 namespace gid>:<level 0 namespace gid>:<number of gids>
 	# --clear-env do not pass the environment variables of the calling process to the unshared process.
+	# NOTE: order of namespaces matter
 	exec unshare \
 		--user \
-		--pid \
 		--ipc \
 		--mount \
-		--net \
+		--pid \
 		--time \
 		--uts \
 		--fork \
@@ -91,7 +91,6 @@ CONTAINER_USER_HOME_HOST_PATH="$CONTAINER_HOME_HOST_PATH/$CONTAINER_USER_NAME"
 CONTAINER_USER_UID=$(id -u)
 CONTAINER_USER_GID=$(id -g)
 CONTAINER_PATH="@agentToolsBinPaths@:/bin"
-CONTAINER_PS1="\[\e[0;36m\][🤖 container]\[\e[38;5;200m\]\w\n\[\e[0;33m\]\$ "
 
 # Make temp directories on host
 mkdir -p $HOST_TEMP_PATH
@@ -261,15 +260,16 @@ mount --bind $CONTAINER_HOME_HOST_PATH "$SANDBOX_ROOT/home"
 # mount --bind -o exec $CONTAINER_TEMP_HOST_PATH "$SANDBOX_ROOT/tmp"
 mount -t tmpfs -o exec,mode=1777 tmpfs "$SANDBOX_ROOT/tmp"
 
-# mount -t tmpfs sys "$SANDBOX_ROOT/sys"
-# mkdir -p "$SANDBOX_ROOT/sys/devices/system/cpu"
-# touch "$SANDBOX_ROOT/sys/devices/system/cpu/online"
-# echo "0-15" > "$SANDBOX_ROOT/sys/devices/system/cpu/online"
+mount -t tmpfs sys "$SANDBOX_ROOT/sys"
+mkdir -p "$SANDBOX_ROOT/sys/devices/system/cpu"
+touch "$SANDBOX_ROOT/sys/devices/system/cpu/online"
+echo "0-15" > "$SANDBOX_ROOT/sys/devices/system/cpu/online"
 
 # podman looks for "/sys/fs/cgroup"
 # to mount sysfs sysfs need to configure unshare with "--net" so that the unshare 
 # namespace owns its own network namespace
-mount -t sysfs sysfs "$SANDBOX_ROOT/sys"
+# NOTE: using this for /sys breaks buildah and opencode
+# mount -t sysfs sysfs "$SANDBOX_ROOT/sys"
 
 touch "$SANDBOX_ROOT/etc/resolv.conf"
 mount --bind /etc/resolv.conf "$SANDBOX_ROOT/etc/resolv.conf"
@@ -528,6 +528,59 @@ echo "=== FINISHED: Switch Root Directory ==="
 # Move into the new root 
 cd /workspace
 
+
+get_git_prompt() {
+    # Check if we are inside a git repository
+    if ! git rev-parse --is-inside-work-tree &>/dev/null; then
+        return
+    fi
+
+    # Get the current branch or commit hash
+    local branch
+    branch=$(git symbolic-ref --short HEAD 2>/dev/null || git rev-parse --short HEAD 2>/dev/null)
+
+    # Check repository status flags
+    local status_output
+    status_output=$(git status --porcelain 2>/dev/null)
+
+    local dirty=""
+    local untracked=""
+    local ahead_behind=""
+
+    # Check for modified/staged/untracked files
+    if [[ -n "$status_output" ]]; then
+        if echo "$status_output" | grep -q '^[MADRC ]'; then
+            dirty="*"
+        fi
+        if echo "$status_output" | grep -q '??'; then
+            untracked="?"
+        fi
+    fi
+
+    # Check ahead/behind status relative to upstream
+    local upstream
+    upstream=$(git rev-parse --abbrev-ref --symbolic-full-name @{u} 2>/dev/null)
+    if [[ -n "$upstream" ]]; then
+        local counts
+        counts=$(git rev-list --left-right --count HEAD...@{u} 2>/dev/null)
+        local ahead
+        local behind
+        ahead=$(echo "$counts" | cut -f1)
+        behind=$(echo "$counts" | cut -f2)
+
+        if (( ahead > 0 )); then
+            ahead_behind+="⇡"
+        fi
+        if (( behind > 0 )); then
+            ahead_behind+="⇣"
+        fi
+    fi
+
+    # Output the formatted prompt segment
+    echo "($branch$dirty$untracked$ahead_behind)"
+}
+
+
 # Define the validation function
 check_executables() {
     # Capture all passed arguments into a local list
@@ -585,7 +638,7 @@ elif [[ "$MODE" == "shell" ]]; then
 	exec env -i \
 	    CONTAINER_RUNTIME=crun \
 		PATH="$CONTAINER_PATH" \
-	    PS1="$CONTAINER_PS1" \
+	    PS1=CONTAINER_PS1="\[\e[0;36m\][🤖 \u@\h]\[\e[0;33m\]\[\e[38;5;200m\][\w]\n\[\e[0;0m\]> " \
 	    HOME="/home/$CONTAINER_USER_NAME" \
 	    USER="$CONTAINER_USER_NAME" \
 	    TEMP="/tmp" \

@@ -1,11 +1,18 @@
 #!/usr/bin/env bash
+echo "Script to start unshare namespace and setup environment outside of unshare namespace"
 
-# --- Everything runs OUTSIDE the new unshare user namespace ---
+# --- Everything runs OUTSIDE the new unshare namespace ---
 
-# script_name=$(basename "$0")
+NAMESPACE="Level 0 namespace (host)"
 script_name="$0"
-echo "Running script: $script_name"
-echo "Current working directory: $PWD"
+echo "$NAMESPACE: running script: $script_name"
+echo "$NAMESPACE: script arguments: $@"
+echo "$NAMESPACE: current working directory: $PWD"
+echo "$NAMESPACE: user name: $(whoami)"
+echo "$NAMESPACE: PID: $$"
+
+UNSHARE_LOG_FILE_NAME="build-internalEnv-$SRANDOM.log"
+echo "$NAMESPACE: UNSHARE_LOG_FILE_NAME: $UNSHARE_LOG_FILE_NAME"
 
 # Handle Script Arguments
 DEBUG=false
@@ -52,12 +59,35 @@ if [[ -z "$START_SHELL_SCRIPT_PATH" ]]; then
 fi
 
 
-echo "User outside namespace: $(whoami)"
-echo "PID outside namespace: $$"
 echo "INTERNAL_ENV_READY_FILE_PATH = $INTERNAL_ENV_READY_FILE_PATH"
 
+cleanup() {
+    echo "Orchestrator exiting. Cleaning up background tasks..."
+    [[ -n "$UNSHARE_CHILD_PID" ]] && kill -9 "$UNSHARE_CHILD_PID" 2>/dev/null
+    [[ -n "$SLIRP_PID" ]] && kill -9 "$SLIRP_PID" 2>/dev/null
 
- echo "=== Initiate unshare Namespace Environment ==="
+	# Clean up parent FDs
+	exec 3>&-
+	exec 4>&-
+}
+
+echo "=== Setup 2-Way Anonymous Pipes ==="
+# Create two anonymous pipes (FIFOs) on the host just to link the FDs
+# (These act as the bridge before the namespaces are locked down)
+PIPE_TO_CHILD=$(mktemp -u)
+PIPE_FROM_CHILD=$(mktemp -u)
+mkfifo "$PIPE_TO_CHILD" "$PIPE_FROM_CHILD"
+
+# Open the pipes on custom file descriptors (FD 3 and FD 4)
+exec 3<>"$PIPE_TO_CHILD"
+exec 4<>"$PIPE_FROM_CHILD"
+
+# Clean up the filesystem links immediately; the open FDs are all we need
+rm "$PIPE_TO_CHILD" "$PIPE_FROM_CHILD"
+echo "=== FINISHED: Setup 2-Way Anonymous Pipes ==="
+
+
+echo "=== Start Background unshare Namespace Environment ==="
 # unshare parameters:
 # --cgroup, -C creates new cgroup namespace
 # --ipc, -i creates new ipc namespace
@@ -77,23 +107,25 @@ echo "INTERNAL_ENV_READY_FILE_PATH = $INTERNAL_ENV_READY_FILE_PATH"
 # --clear-env do not pass the environment variables of the calling process to the unshared process.
 #
 # NOTE: "stdbuf -oL -eL" before bash is to force flushing of outputs to log file
-echo "📦 Starting unshare container"
+#   The '3<&3 4>&4' forces the FDs to remain open across the unshare exec boundary
+# NOTE: need "--net" to mount "/sys"
+# NOTE: need "--map-users" and "--map-groups" for buildah and podman to work
 unshare \
 	--user \
-	--pid \
 	--ipc \
 	--mount \
 	--net \
+	--pid \
 	--time \
 	--uts \
 	--fork \
 	--map-root-user \
-	--map-users 0:100000:20000 \
-	--map-groups 0:100000:20000 \
+	--map-users auto \
+	--map-groups auto \
 	stdbuf -oL -eL bash "$BUILD_INTERNAL_ENV_SCRIPT_PATH" \
 		--ready-file-path "$INTERNAL_ENV_READY_FILE_PATH" \
 		--start-shell-script "$START_SHELL_SCRIPT_PATH" \
-		> "build-internalEnv-$SRANDOM.log" 2>&1 &
+		> "$UNSHARE_LOG_FILE_NAME" 2>&1 3<&3 4>&4 &
 
 UNSHARE_PARENT_PID=$!
 echo "Host PID for unshare parent process $UNSHARE_PARENT_PID"
@@ -107,15 +139,28 @@ echo "Host PID for unshare forked child process $UNSHARE_CHILD_PID"
 
 # Clean up the background sleep process when this orchestrator exits
 # NOTE: need kill -9 to kill sleep infinity
-trap "kill -9 $UNSHARE_CHILD_PID 2>/dev/null" EXIT
+trap cleanup EXIT
+echo "=== FINISHED: Start Background unshare Namespace Environment ==="
 
+
+echo "=== Verify 2-Way Anonymous Pipe Communication ==="
+# Parent communicates through the established FDs
+echo "[Parent] Sending verification message to child"
+echo "Hello child, can you hear me?" >&3
+
+# Read the reply from the child
+read -u 4 REPLY
+echo "[Parent] Received from child: $REPLY"
+echo "=== FINISHED: Verify 2-Way Anonymous Pipe Communication ==="
+
+
+echo "=== Setup Bridge Network For unshare Namespace ==="
 # Attach slirp4netns from outside the namespace to connect it to the internet
 slirp4netns --configure --mtu=65520 $UNSHARE_CHILD_PID tap0 &
 SLIRP_PID=$!
+echo "=== FINISHED: Setup Bridge Network For unshare Namespace ==="
 
-# Clean up the background slirp4netns process when this orchestrator exits
-trap "kill -9 $UNSHARE_CHILD_PID $SLIRP_PID 2>/dev/null" EXIT
-
+echo "=== Wait To Connect To unshare Namespace ==="
 echo "Waiting for file to appear at: $INTERNAL_ENV_READY_FILE_PATH"
 CHECK_INTERVAL=2
 TIMEOUT_LIMIT=120 # Maximum seconds to wait
@@ -135,19 +180,21 @@ done
 
 echo "Success: $INTERNAL_ENV_READY_FILE_PATH file found! Proceeding with the rest of the script..."
 rm $INTERNAL_ENV_READY_FILE_PATH
+echo "=== FINISHED: Wait To Connect To unshare Namespace ==="
 
 
 # NOTE: Need the Nix store path of "@startShellScriptShellWrapper_nixStorePath@/bin/@startShellScriptFileName@" bind mounted within container
 # NOTE: nsenter starting bash process inherits a direct copy of host shell environment variables
 # NOTE: exporting TERM to pass it through nsenter to the called script
-export TERM="${TERM:-xterm-256color}"
 nsenter \
 	--keep-caps \
-	--target $UNSHARE_CHILD_PID \
+	--user \
 	--ipc \
 	--mount \
 	--net \
-	--user \
+	--pid \
+	--time \
 	--uts \
 	--wdns="/workspace" \
+	--target $UNSHARE_CHILD_PID \
 	bash "@startShellScriptShellWrapper_nixStorePath@/bin/@startShellScriptFileName@" --mode $MODE
