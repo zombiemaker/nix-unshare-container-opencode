@@ -12,6 +12,21 @@ echo "$NAMESPACE: current working directory: $PWD"
 echo "$NAMESPACE: user name: $(whoami)"
 echo "$NAMESPACE: PID: $$"
 echo "$NAMESPACE: TMP: $TMP"
+
+
+# Get the interface name handling the default route
+PRIMARY_IFACE=$(ip route | awk '/default/ {print $5; exit}')
+
+# Get the specific internal source IP assigned to that interface
+if [ -n "$PRIMARY_IFACE" ]; then
+    PRIMARY_IP=$(ip route get 1.1.1.1 | awk '{print $7; exit}')
+else
+    echo "Error: No default network interface found." >&2
+fi
+
+echo "$NAMESPACE: PRIMARY_IFACE: $PRIMARY_IFACE"
+echo "$NAMESPACE: PRIMARY_IP: $PRIMARY_IP"
+
 echo "*************************************************************************"
 
 UNSHARE_LOG_FILE_NAME="$TMP/build-inside_ns-$SRANDOM.log"
@@ -23,9 +38,6 @@ MODE="shell"
 BUILD_INSIDE_NS_ENV_SCRIPT_PATH=""
 INSIDE_NS_ENV_READY_FILE_PATH="$TMP/$SRANDOM"
 OTHER_ARGS=()
-SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS="0.0.0.0"
-SLIRP4NETNS_PORT_FORWARD_HOST_PORT="9000"
-SLIRP4NETNS_PORT_FORWARD_GUEST_PORT="9000"
 
 # Loop through all positional parameters
 while [[ $# -gt 0 ]]; do
@@ -173,30 +185,27 @@ setup_bridge_network() {
 	# Attach slirp4netns from outside the namespace to connect it to the internet
 	# --port-forward=hostPort:guestPort
 	slirp4netns --version
+
+	# doc on api-socket: https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md#api-socket
 	slirp4netns \
 		--api-socket="$TMP/slirp4netns.sock" \
 		--configure \
 		--mtu=65520 \
 		--disable-host-loopback \
-		--outbound-addr="$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS" \
+		--outbound-addr="$PRIMARY_IP" \
 		$UNSHARE_CHILD_PID tap0 &
 	SLIRP_PID=$!
+	
 	# Wait briefly for the socket to initialize, then send the port-forwarding rule
 	sleep 1
+
+	# NOTE: to change values for variables within '@', edit flake.nix that uses this template script
 	read -r -d '' JSON_COMMAND << JSON
-{
-	"execute": "add_hostfwd",
-	"arguments": {
-		"proto": "tcp",
-		"host_addr": "$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS",
-		"host_port": $SLIRP4NETNS_PORT_FORWARD_HOST_PORT,
-		"guest_port": $SLIRP4NETNS_PORT_FORWARD_GUEST_PORT
-	}
-}
+	{ "execute": "add_hostfwd", "arguments": { "proto": "tcp", "host_addr":  "@slirp4netns_port_forward_host_addr@", "host_port":  @slirp4netns_port_forward_host_port@, "guest_addr": "10.0.2.100", "guest_port": @slirp4netns_port_forward_guest_port@ }}
 JSON
+	
 	# Format: add_hostfwd:proto:host_addr:host_port:guest_addr:guest_port
-	#echo "'{\"execute\": \"add_hostfwd\", \"arguments\": {\"proto\": \"tcp\", \"host_addr\": \""$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS"\", \"host_port\": \""$SLIRP4NETNS_PORT_FORWARD_HOST_PORT"\", \"guest_port\": \""$SLIRP4NETNS_PORT_FORWARD_GUEST_PORT"\"}}'" | nc -U "$TMP/slirp4netns.sock"
-	echo "$JSON_COMMAND" | nc -U "$TMP/slirp4netns.sock"
+	echo -n "$JSON_COMMAND" | nc -U "$TMP/slirp4netns.sock"
 	echo "=== FINISHED: Setup Bridge Network For unshare Namespace ==="
 }
 

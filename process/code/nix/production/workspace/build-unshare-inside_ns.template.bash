@@ -515,74 +515,132 @@ cat <<EOF > "/etc/containers/policy.json"
 EOF
 
 
-
+# NOTE: to change values for variables within '@', edit flake.nix that uses this template script
+# NOTE: configuration reference https://opencode.ai/v2/docs
 mkdir -p "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode"
 cat <<EOF > "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.json"
 {
-  "\$schema": "https://opencode.ai/config.json",
-  "disableBuiltInProviders": true,
-  "disabled_providers": [],
-  "enabled_providers": [
-	"@opencode_custom_llm_provider_1_id@",
-	"@opencode_custom_llm_provider_2_id@",
-	"@opencode_custom_llm_provider_3_id@"
-  ],
-  "provider": {
-    "@opencode_custom_llm_provider_1_id@": {
-	  "name": "@opencode_custom_llm_provider_1_name@",
-      "npm": "@ai-sdk/openai-compatible",
-      "options": {
-        "baseURL": "@opencode_custom_llm_provider_1_base_url@"
-      },
-      "models": {
-        "@opencode_custom_llm_provider_1_model_1_id@": {
-          "name": "@opencode_custom_llm_provider_1_model_1_name@"
-        },
-		"@opencode_custom_llm_provider_1_model_2_id@": {
-          "name": "@opencode_custom_llm_provider_1_model_2_name@"
-        },
-		"@opencode_custom_llm_provider_1_model_3_id@": {
-          "name": "@opencode_custom_llm_provider_1_model_3_name@"
-        }
-      }
-    },
-	"@opencode_custom_llm_provider_2_id@": {
-      "name": "@opencode_custom_llm_provider_2_name@",
-      "npm": "@ai-sdk/openai-compatible",
-      "options": {
-        "baseURL": "@opencode_custom_llm_provider_2_base_url@"
-      },
-      "models": {
-        "@opencode_custom_llm_provider_2_model_1_id@": {
-          "name": "@opencode_custom_llm_provider_2_model_1_name@"
-        },
-		"@opencode_custom_llm_provider_2_model_2_id@": {
-          "name": "@opencode_custom_llm_provider_2_model_2_name@"
-        },
-		"@opencode_custom_llm_provider_2_model_3_id@": {
-          "name": "@opencode_custom_llm_provider_2_model_3_name@"
-        }
-      }
-    },
-	"@opencode_custom_llm_provider_3_id@": {
-	  "name": "@opencode_custom_llm_provider_3_name@",
-      "npm": "@ai-sdk/openai-compatible",
-      "options": {
-        "baseURL": "@opencode_custom_llm_provider_3_base_url@"
-      },
-      "models": {
-        "@opencode_custom_llm_provider_3_model_1_id@": {
-          "name": "@opencode_custom_llm_provider_3_model_1_name@"
-        },
-		"@opencode_custom_llm_provider_3_model_2_id@": {
-          "name": "@opencode_custom_llm_provider_3_model_2_name@"
-        },
-		"@opencode_custom_llm_provider_3_model_3_id@": {
-          "name": "@opencode_custom_llm_provider_3_model_3_name@"
-        }
-      }
-    }
-  }
+	"\$schema": "https://opencode.ai/config.json",
+	"disableBuiltInProviders": true,
+	"disabled_providers": [],
+	"enabled_providers": [
+		"@opencode_custom_llm_provider_1_id@",
+		"@opencode_custom_llm_provider_2_id@",
+		"@opencode_custom_llm_provider_3_id@"
+	],
+	"provider": {
+		"@opencode_custom_llm_provider_1_id@": {
+			"name": "@opencode_custom_llm_provider_1_name@",
+			"npm": "@ai-sdk/openai-compatible",
+			"options": {
+				"baseURL": "@opencode_custom_llm_provider_1_base_url@"
+			},
+			"models": {
+				"@opencode_custom_llm_provider_1_model_1_id@": {
+					"modelID": "@opencode_custom_llm_provider_1_model_1_id@",
+					"name": "@opencode_custom_llm_provider_1_model_1_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_1_model_1_limit_context@,
+						"output": @opencode_custom_llm_provider_1_model_1_limit_output@
+					}
+				},
+				"@opencode_custom_llm_provider_1_model_2_id@": {
+					"modelID": "@opencode_custom_llm_provider_1_model_2_id@",
+					"name": "@opencode_custom_llm_provider_1_model_2_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_1_model_2_limit_context@,
+						"output": @opencode_custom_llm_provider_1_model_2_limit_output@
+					}
+				},
+				"@opencode_custom_llm_provider_1_model_3_id@": {
+					"modelID": "@opencode_custom_llm_provider_1_model_3_id@",
+					"name": "@opencode_custom_llm_provider_1_model_3_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_1_model_3_limit_context@,
+						"output": @opencode_custom_llm_provider_1_model_3_limit_output@
+					}
+				}
+			}
+		},
+		"@opencode_custom_llm_provider_2_id@": {
+			"name": "@opencode_custom_llm_provider_2_name@",
+			"npm": "@ai-sdk/openai-compatible",
+			"options": {
+				"baseURL": "@opencode_custom_llm_provider_2_base_url@"
+			},
+			"models": {
+				"@opencode_custom_llm_provider_2_model_1_id@": {
+					"modelID": "@opencode_custom_llm_provider_2_model_1_id@",
+					"name": "@opencode_custom_llm_provider_2_model_1_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_2_model_1_limit_context@,
+						"output": @opencode_custom_llm_provider_2_model_1_limit_output@
+					}
+				},
+				"@opencode_custom_llm_provider_2_model_2_id@": {
+					"modelID": "@opencode_custom_llm_provider_2_model_2_id@",
+					"name": "@opencode_custom_llm_provider_2_model_2_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_2_model_2_limit_context@,
+						"output": @opencode_custom_llm_provider_2_model_2_limit_output@
+					}
+				},
+				"@opencode_custom_llm_provider_2_model_3_id@": {
+					"modelID": "@opencode_custom_llm_provider_2_model_3_id@",
+					"name": "@opencode_custom_llm_provider_2_model_3_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_2_model_3_limit_context@,
+						"output": @opencode_custom_llm_provider_2_model_3_limit_output@
+					}
+				}
+			}
+		},
+		"@opencode_custom_llm_provider_3_id@": {
+			"name": "@opencode_custom_llm_provider_3_name@",
+			"npm": "@ai-sdk/openai-compatible",
+			"options": {
+				"baseURL": "@opencode_custom_llm_provider_3_base_url@"
+			},
+			"models": {
+				"@opencode_custom_llm_provider_3_model_1_id@": {
+					"modelID": "@opencode_custom_llm_provider_3_model_1_id@",
+					"name": "@opencode_custom_llm_provider_3_model_1_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_3_model_1_limit_context@,
+						"output": @opencode_custom_llm_provider_3_model_1_limit_output@
+					}
+				},
+				"@opencode_custom_llm_provider_3_model_2_id@": {
+					"modelID": "@opencode_custom_llm_provider_3_model_2_id@",
+					"name": "@opencode_custom_llm_provider_3_model_2_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_3_model_2_limit_context@,
+						"output": @opencode_custom_llm_provider_3_model_2_limit_output@
+					}
+				},
+				"@opencode_custom_llm_provider_3_model_3_id@": {
+					"modelID": "@opencode_custom_llm_provider_3_model_3_id@",
+					"name": "@opencode_custom_llm_provider_3_model_3_name@",
+					"limit": {
+						"context": @opencode_custom_llm_provider_3_model_3_limit_context@,
+						"output": @opencode_custom_llm_provider_3_model_3_limit_output@
+					}
+				}
+			}
+		}
+	},
+	"server": {
+		"port": @opencode_server_port@,
+		"hostname": "@opencode_server_hostname@",
+		"mdns": true,
+		"mdnsDomain": "opencode.local",
+		"cors": @opencode_server_cors@
+	},
+	"compaction": {
+		"auto": true,
+		"keep": { "tokens": 24000 },
+		"buffer": 16384,
+	},
 }
 EOF
 echo "=== FINISHED: Create System & Application Configuration Files ==="
@@ -752,6 +810,4 @@ export -f check_executables
 EOF
 
 echo "=== FINISHED: Create Files For Future nsenter Sessions ==="
-
-
 sleep infinity
