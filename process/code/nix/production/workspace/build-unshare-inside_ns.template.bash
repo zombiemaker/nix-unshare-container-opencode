@@ -69,6 +69,7 @@ INSIDE_NS_PATH_BUILDAH_RUN="/buildah-run"
 # TODO: make buildah run files persistent to save images
 INSIDE_NS_ENV_VAR_PATH="@agentToolsBinPaths@:/bin"
 
+
 # Make container mount directories on host
 [[ -d $INSIDE_NS_HOST_PATH_ROOTFS_MOUNT ]] || mkdir -p $INSIDE_NS_HOST_PATH_ROOTFS_MOUNT
 [[ -d $INSIDE_NS_HOST_PATH_ROOTFS_MOUNT_SOURCE ]] || mkdir -p $INSIDE_NS_HOST_PATH_ROOTFS_MOUNT_SOURCE
@@ -513,38 +514,75 @@ cat <<EOF > "/etc/containers/policy.json"
 }
 EOF
 
+
+
 mkdir -p "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode"
 cat <<EOF > "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.json"
 {
-  "$schema": "https://opencode.ai/config.json",
+  "\$schema": "https://opencode.ai/config.json",
   "disableBuiltInProviders": true,
+  "disabled_providers": [],
+  "enabled_providers": [
+	"@opencode_custom_llm_provider_1_id@",
+	"@opencode_custom_llm_provider_2_id@",
+	"@opencode_custom_llm_provider_3_id@"
+  ],
   "provider": {
-    "strata": {
-      "name": "strata",
+    "@opencode_custom_llm_provider_1_id@": {
+	  "name": "@opencode_custom_llm_provider_1_name@",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "baseURL": "http://192.168.1.90:9943/v1"
+        "baseURL": "@opencode_custom_llm_provider_1_base_url@"
       },
       "models": {
-        "qwen3.8-flash-next-iq3_s": {
-          "name": "qwen3.8-flash-next-iq3_s"
+        "@opencode_custom_llm_provider_1_model_1_id@": {
+          "name": "@opencode_custom_llm_provider_1_model_1_name@"
+        },
+		"@opencode_custom_llm_provider_1_model_2_id@": {
+          "name": "@opencode_custom_llm_provider_1_model_2_name@"
+        },
+		"@opencode_custom_llm_provider_1_model_3_id@": {
+          "name": "@opencode_custom_llm_provider_1_model_3_name@"
         }
       }
     },
-	"ollama-ejn": {
-      "name": "ollama-ejn",
+	"@opencode_custom_llm_provider_2_id@": {
+      "name": "@opencode_custom_llm_provider_2_name@",
       "npm": "@ai-sdk/openai-compatible",
       "options": {
-        "baseURL": "http://192.168.1.108:11434"
+        "baseURL": "@opencode_custom_llm_provider_2_base_url@"
       },
       "models": {
-        "qwen2.5-coder:7b": {
-          "name": "qwen2.5-coder:7b"
+        "@opencode_custom_llm_provider_2_model_1_id@": {
+          "name": "@opencode_custom_llm_provider_2_model_1_name@"
+        },
+		"@opencode_custom_llm_provider_2_model_2_id@": {
+          "name": "@opencode_custom_llm_provider_2_model_2_name@"
+        },
+		"@opencode_custom_llm_provider_2_model_3_id@": {
+          "name": "@opencode_custom_llm_provider_2_model_3_name@"
+        }
+      }
+    },
+	"@opencode_custom_llm_provider_3_id@": {
+	  "name": "@opencode_custom_llm_provider_3_name@",
+      "npm": "@ai-sdk/openai-compatible",
+      "options": {
+        "baseURL": "@opencode_custom_llm_provider_3_base_url@"
+      },
+      "models": {
+        "@opencode_custom_llm_provider_3_model_1_id@": {
+          "name": "@opencode_custom_llm_provider_3_model_1_name@"
+        },
+		"@opencode_custom_llm_provider_3_model_2_id@": {
+          "name": "@opencode_custom_llm_provider_3_model_2_name@"
+        },
+		"@opencode_custom_llm_provider_3_model_3_id@": {
+          "name": "@opencode_custom_llm_provider_3_model_3_name@"
         }
       }
     }
-  },
-  "model": "strata/qwen3.8-flash-next-iq3_s"
+  }
 }
 EOF
 echo "=== FINISHED: Create System & Application Configuration Files ==="

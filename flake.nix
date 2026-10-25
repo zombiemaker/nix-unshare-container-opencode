@@ -421,6 +421,33 @@
         fuse_overlayfs_nixStorePath = pkgs.fuse-overlayfs;
         cacert_nixStorePath = pkgs.cacert;
         startShellScriptShellWrapper_nixStorePath = startShellScriptShellWrapper_LinuxNixOs;
+        opencode_custom_llm_provider_1_id="local.strata";
+        opencode_custom_llm_provider_1_name="local-strata";
+        opencode_custom_llm_provider_1_base_url="http://192.168.1.90:9943/v1";
+        opencode_custom_llm_provider_1_model_1_id="qwen-3.8.fn";
+        opencode_custom_llm_provider_1_model_1_name="qwen3.8-flash-next-iq3_s";
+        opencode_custom_llm_provider_1_model_2_id="p1_m2_id";
+        opencode_custom_llm_provider_1_model_2_name="p1_m2_name";
+        opencode_custom_llm_provider_1_model_3_id="p1_m3_id";
+        opencode_custom_llm_provider_1_model_3_name="p1_m3_name";
+        opencode_custom_llm_provider_2_id="local.llama.cpp";
+        opencode_custom_llm_provider_2_name="local-llama-cpp";
+        opencode_custom_llm_provider_2_base_url="http://192.168.1.90:9941/v1";
+        opencode_custom_llm_provider_2_model_1_id="qwen-3-embedding-0.6b";
+        opencode_custom_llm_provider_2_model_1_name="Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0";
+        opencode_custom_llm_provider_2_model_2_id="p2_m2_id";
+        opencode_custom_llm_provider_2_model_2_name="p2_m2_name";
+        opencode_custom_llm_provider_2_model_3_id="p2_m3_id";
+        opencode_custom_llm_provider_2_model_3_name="p2_m3_name";
+        opencode_custom_llm_provider_3_id="local.ollama";
+        opencode_custom_llm_provider_3_name="local-ollama";
+        opencode_custom_llm_provider_3_base_url="http://192.168.1.108:11434/v1";
+        opencode_custom_llm_provider_3_model_1_id="qwen-2.5-coder-7b";
+        opencode_custom_llm_provider_3_model_1_name="qwen-2.5-coder:7b";
+        opencode_custom_llm_provider_3_model_2_id="p3_m2_id";
+        opencode_custom_llm_provider_3_model_2_name="p3_m2_name";
+        opencode_custom_llm_provider_3_model_3_id="p3_m3_id";
+        opencode_custom_llm_provider_3_model_3_name="p3_m3_name";
       };
 
       # Set executable permission

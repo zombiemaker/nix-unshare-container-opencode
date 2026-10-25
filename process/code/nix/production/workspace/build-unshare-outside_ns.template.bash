@@ -24,8 +24,8 @@ BUILD_INSIDE_NS_ENV_SCRIPT_PATH=""
 INSIDE_NS_ENV_READY_FILE_PATH="$TMP/$SRANDOM"
 OTHER_ARGS=()
 SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS="0.0.0.0"
-SLIRP4NETNS_PORT_FORWARD_HOST_PORT="4096"
-SLIRP4NETNS_PORT_FORWARD_GUEST_PORT="4096"
+SLIRP4NETNS_PORT_FORWARD_HOST_PORT="9000"
+SLIRP4NETNS_PORT_FORWARD_GUEST_PORT="9000"
 
 # Loop through all positional parameters
 while [[ $# -gt 0 ]]; do
@@ -171,12 +171,32 @@ verify_parent_child_communication() {
 setup_bridge_network() {
 	echo "=== Setup Bridge Network For unshare Namespace ==="
 	# Attach slirp4netns from outside the namespace to connect it to the internet
-	slirp4netns --api-socket="$TMP/slirp4netns.sock" --configure --mtu=65520 $UNSHARE_CHILD_PID tap0 &
+	# --port-forward=hostPort:guestPort
+	slirp4netns --version
+	slirp4netns \
+		--api-socket="$TMP/slirp4netns.sock" \
+		--configure \
+		--mtu=65520 \
+		--disable-host-loopback \
+		--outbound-addr="$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS" \
+		$UNSHARE_CHILD_PID tap0 &
 	SLIRP_PID=$!
 	# Wait briefly for the socket to initialize, then send the port-forwarding rule
 	sleep 1
+	read -r -d '' JSON_COMMAND << JSON
+{
+	"execute": "add_hostfwd",
+	"arguments": {
+		"proto": "tcp",
+		"host_addr": "$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS",
+		"host_port": $SLIRP4NETNS_PORT_FORWARD_HOST_PORT,
+		"guest_port": $SLIRP4NETNS_PORT_FORWARD_GUEST_PORT
+	}
+}
+JSON
 	# Format: add_hostfwd:proto:host_addr:host_port:guest_addr:guest_port
-	echo '{"execute": "add_hostfwd", "arguments": {"proto": "tcp", "host_addr": "$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS", "host_port": "$SLIRP4NETNS_PORT_FORWARD_HOST_PORT", "guest_port": "$SLIRP4NETNS_PORT_FORWARD_GUEST_PORT"}}' | nc -U "$TMP/slirp4netns.sock"
+	#echo "'{\"execute\": \"add_hostfwd\", \"arguments\": {\"proto\": \"tcp\", \"host_addr\": \""$SLIRP4NETNS_PORT_FORWARD_HOST_ADDRESS"\", \"host_port\": \""$SLIRP4NETNS_PORT_FORWARD_HOST_PORT"\", \"guest_port\": \""$SLIRP4NETNS_PORT_FORWARD_GUEST_PORT"\"}}'" | nc -U "$TMP/slirp4netns.sock"
+	echo "$JSON_COMMAND" | nc -U "$TMP/slirp4netns.sock"
 	echo "=== FINISHED: Setup Bridge Network For unshare Namespace ==="
 }
 
