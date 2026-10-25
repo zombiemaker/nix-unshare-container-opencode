@@ -703,12 +703,13 @@ shopt -s checkwinsize
 
 cat <<EOF_MSG
 - Start OpenCode CLI: opencode
-- Start OpenCode Web: opencode serve --hostname 0.0.0.0
+- Start OpenCode Web: opencode serve --hostname 0.0.0.0 --port 9000 (match slirp4netns port forwarding)
 - Buildah: build container image: buildah build
 - Buildah: list container images: buildah images
 - Podman: run container: podman run -it --rm <container_image_id> <program_name_in_image>
 - Podman: list container images using podman: podman images
-- kubectl: 
+- kubectl: kubectl cluster-info (requires ~/.kube/config configured)
+- k9s: 
 EOF_MSG
 
 
