@@ -386,6 +386,8 @@ EOF
 
 
 # Container /etc/containers
+# NOTE: used by buildah
+# NOTE: used by podman
 mkdir -p "/etc/containers"
 
 # /etc/containers/containers.conf
@@ -394,7 +396,7 @@ cat <<EOF > "/etc/containers/containers.conf"
 # Explicitly forces chroot behavior at the engine layer
 isolation = "chroot"
 
-# NOTE: need this for podman to working without systemd
+# NOTE: need this for podman to work without systemd
 cgroup_manager = "cgroupfs"
 events_logger = "file"
 
@@ -404,6 +406,8 @@ EOF
 
 
 # /etc/containers/storage.conf
+# NOTE: used by buildah
+# NOTE: used by podman
 # Create a local storage.conf to force Buildah to use the fuse-overlafs overlay driver
 # (Standard overlayfs requires kernel mounts that bwrap blocks by default)
 cat <<EOF > "/etc/containers/storage.conf"
@@ -425,6 +429,8 @@ EOF
 
 
 # /etc/containers/registries.conf
+# NOTE: used by buildah
+# NOTE: used by podman
 cat <<EOF > "/etc/containers/registries.conf"
 # /etc/containers/registries.conf
 
@@ -472,6 +478,8 @@ EOF
 
 
 # /etc/containers/policy.json
+# NOTE: used by buildah
+# NOTE: used by podman
 cat <<EOF > "/etc/containers/policy.json"
 {
 "default": [
@@ -514,12 +522,39 @@ cat <<EOF > "/etc/containers/policy.json"
 }
 EOF
 
-
+# NOTE: used by opencode
 # NOTE: to change values for variables within '@', edit flake.nix that uses this template script
 # NOTE: configuration reference https://opencode.ai/v2/docs
-mkdir -p "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode"
-cat <<EOF > "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.json"
+[[ -d "/etc/opencode" ]] || mkdir -p "$/etc/opencode"
+
+if [[ ! -f "/etc/opencode/opencode.jsonc" ]]; then
+	cat <<EOF > "/etc/opencode/opencode.jsonc"
 {
+	// computer system-level OpenCode configuration
+	"\$schema": "https://opencode.ai/config.json",
+}
+EOF
+fi
+
+
+[[ -d "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode" ]] || mkdir -p "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode"
+
+if [[ ! -f "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.jsonc" ]]; then
+	cat <<EOF > "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.jsonc"
+{
+	// user-level OpenCode configuration
+	"\$schema": "https://opencode.ai/config.json",
+}
+EOF
+fi
+
+
+[[ -d "$INSIDE_NS_PATH_WORKSPACE/.opencode/" ]] || mkdir -p "$INSIDE_NS_PATH_WORKSPACE/.opencode"
+
+if [[ ! -f "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc" ]]; then
+	cat <<EOF > "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc"
+{
+	// project workspace-level OpenCode configuration
 	"\$schema": "https://opencode.ai/config.json",
 	"disableBuiltInProviders": true,
 	"disabled_providers": [],
@@ -641,8 +676,10 @@ cat <<EOF > "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.json"
 		"keep": { "tokens": 24000 },
 		"buffer": 16384,
 	},
+	"shell": "@opencode_shell@"
 }
 EOF
+fi
 echo "=== FINISHED: Create System & Application Configuration Files ==="
 
 

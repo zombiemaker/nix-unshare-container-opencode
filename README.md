@@ -6,7 +6,7 @@ destroy your system running it.  Utilizes Nix and Nixpkgs library to provision
 software for the AI agent harness to use.
 
 ## Supported Environments
-- NixOS Linux machines on x86_64 machines
+- NixOS Linux on x86_64 machines
 - Linux + Nix on x86_64 machines
 - Visual Studio Code
 
