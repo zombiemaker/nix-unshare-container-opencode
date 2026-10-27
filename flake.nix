@@ -18,6 +18,11 @@
     system = "x86_64-linux";
     pkgs = import nixpkgs { inherit system; };
     zm_pixi = zm_pixi_repo.v0_75_0.machine_code.x86_64.linux.musl_libc;
+
+    humanTools_shell = [
+      pkgs.tmux
+      pkgs.zellij
+    ];
     
     agentTools_nixos = [
       pkgs.nix
@@ -356,6 +361,7 @@
 
     # ACTION: Select derivations groups to make available to AI agent harness
     agentTools_Selected = agentTools_nixos ++
+      humanTools_shell ++
       agentTools_os ++
       agentTools_os_containers ++
       agentTools_os_processes ++
