@@ -130,6 +130,11 @@ if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/
     New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system/.emptydir"
 }
 
+if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system"
+    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system/.emptydir"
+}
+
 if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature")) {
     New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature"
 }
@@ -227,6 +232,11 @@ if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/
 if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system")) {
     New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system"
     New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system/.emptydir"
+}
+
+if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system")) {
+    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system"
+    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system/.emptydir"
 }
 
 if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature")) {
