@@ -525,13 +525,13 @@ EOF
 # NOTE: used by opencode
 # NOTE: to change values for variables within '@', edit flake.nix that uses this template script
 # NOTE: configuration reference https://opencode.ai/v2/docs
-[[ -d "/etc/opencode" ]] || mkdir -p "$/etc/opencode"
+[[ -d "/etc/opencode" ]] || mkdir -p "/etc/opencode"
 
 if [[ ! -f "/etc/opencode/opencode.jsonc" ]]; then
 	cat <<EOF > "/etc/opencode/opencode.jsonc"
 {
 	// computer system-level OpenCode configuration
-	"\$schema": "https://opencode.ai/config.json",
+	"\$schema": "https://opencode.ai/config.json"
 }
 EOF
 fi
@@ -543,7 +543,7 @@ if [[ ! -f "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.jsonc"
 	cat <<EOF > "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.config/opencode/opencode.jsonc"
 {
 	// user-level OpenCode configuration
-	"\$schema": "https://opencode.ai/config.json",
+	"\$schema": "https://opencode.ai/config.json"
 }
 EOF
 fi
@@ -559,117 +559,117 @@ if [[ ! -f "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc" ]]; then
 	"disableBuiltInProviders": true,
 	"disabled_providers": [],
 	"enabled_providers": [
-		"@opencode_custom_llm_provider_1_id@",
-		"@opencode_custom_llm_provider_2_id@",
-		"@opencode_custom_llm_provider_3_id@"
+		"opencode_custom_llm_provider_1_id",
+		"opencode_custom_llm_provider_2_id",
+		"opencode_custom_llm_provider_3_id"
 	],
 	"provider": {
-		"@opencode_custom_llm_provider_1_id@": {
-			"name": "@opencode_custom_llm_provider_1_name@",
+		"opencode_custom_llm_provider_1_id": {
+			"name": "opencode_custom_llm_provider_1_name",
 			"npm": "@ai-sdk/openai-compatible",
 			"options": {
-				"baseURL": "@opencode_custom_llm_provider_1_base_url@"
+				"baseURL": "opencode_custom_llm_provider_1_base_url"
 			},
 			"models": {
-				"@opencode_custom_llm_provider_1_model_1_id@": {
-					"modelID": "@opencode_custom_llm_provider_1_model_1_id@",
-					"name": "@opencode_custom_llm_provider_1_model_1_name@",
+				"opencode_custom_llm_provider_1_model_1_id": {
+					"modelID": "opencode_custom_llm_provider_1_model_1_id",
+					"name": "opencode_custom_llm_provider_1_model_1_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_1_model_1_limit_context@,
-						"output": @opencode_custom_llm_provider_1_model_1_limit_output@
+						"context": opencode_custom_llm_provider_1_model_1_limit_context,
+						"output": opencode_custom_llm_provider_1_model_1_limit_output
 					}
 				},
-				"@opencode_custom_llm_provider_1_model_2_id@": {
-					"modelID": "@opencode_custom_llm_provider_1_model_2_id@",
-					"name": "@opencode_custom_llm_provider_1_model_2_name@",
+				"opencode_custom_llm_provider_1_model_2_id": {
+					"modelID": "opencode_custom_llm_provider_1_model_2_id",
+					"name": "opencode_custom_llm_provider_1_model_2_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_1_model_2_limit_context@,
-						"output": @opencode_custom_llm_provider_1_model_2_limit_output@
+						"context": opencode_custom_llm_provider_1_model_2_limit_context,
+						"output": opencode_custom_llm_provider_1_model_2_limit_output
 					}
 				},
-				"@opencode_custom_llm_provider_1_model_3_id@": {
-					"modelID": "@opencode_custom_llm_provider_1_model_3_id@",
-					"name": "@opencode_custom_llm_provider_1_model_3_name@",
+				"opencode_custom_llm_provider_1_model_3_id": {
+					"modelID": "opencode_custom_llm_provider_1_model_3_id",
+					"name": "opencode_custom_llm_provider_1_model_3_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_1_model_3_limit_context@,
-						"output": @opencode_custom_llm_provider_1_model_3_limit_output@
+						"context": opencode_custom_llm_provider_1_model_3_limit_context,
+						"output": opencode_custom_llm_provider_1_model_3_limit_output
 					}
 				}
 			}
 		},
-		"@opencode_custom_llm_provider_2_id@": {
-			"name": "@opencode_custom_llm_provider_2_name@",
+		"opencode_custom_llm_provider_2_id": {
+			"name": "opencode_custom_llm_provider_2_name",
 			"npm": "@ai-sdk/openai-compatible",
 			"options": {
-				"baseURL": "@opencode_custom_llm_provider_2_base_url@"
+				"baseURL": "opencode_custom_llm_provider_2_base_url"
 			},
 			"models": {
-				"@opencode_custom_llm_provider_2_model_1_id@": {
-					"modelID": "@opencode_custom_llm_provider_2_model_1_id@",
-					"name": "@opencode_custom_llm_provider_2_model_1_name@",
+				"opencode_custom_llm_provider_2_model_1_id": {
+					"modelID": "opencode_custom_llm_provider_2_model_1_id",
+					"name": "opencode_custom_llm_provider_2_model_1_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_2_model_1_limit_context@,
-						"output": @opencode_custom_llm_provider_2_model_1_limit_output@
+						"context": opencode_custom_llm_provider_2_model_1_limit_context,
+						"output": opencode_custom_llm_provider_2_model_1_limit_output
 					}
 				},
-				"@opencode_custom_llm_provider_2_model_2_id@": {
-					"modelID": "@opencode_custom_llm_provider_2_model_2_id@",
-					"name": "@opencode_custom_llm_provider_2_model_2_name@",
+				"opencode_custom_llm_provider_2_model_2_id": {
+					"modelID": "opencode_custom_llm_provider_2_model_2_id",
+					"name": "opencode_custom_llm_provider_2_model_2_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_2_model_2_limit_context@,
-						"output": @opencode_custom_llm_provider_2_model_2_limit_output@
+						"context": opencode_custom_llm_provider_2_model_2_limit_context,
+						"output": opencode_custom_llm_provider_2_model_2_limit_output
 					}
 				},
-				"@opencode_custom_llm_provider_2_model_3_id@": {
-					"modelID": "@opencode_custom_llm_provider_2_model_3_id@",
-					"name": "@opencode_custom_llm_provider_2_model_3_name@",
+				"opencode_custom_llm_provider_2_model_3_id": {
+					"modelID": "opencode_custom_llm_provider_2_model_3_id",
+					"name": "opencode_custom_llm_provider_2_model_3_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_2_model_3_limit_context@,
-						"output": @opencode_custom_llm_provider_2_model_3_limit_output@
+						"context": opencode_custom_llm_provider_2_model_3_limit_contex@,
+						"output": opencode_custom_llm_provider_2_model_3_limit_output
 					}
 				}
 			}
 		},
-		"@opencode_custom_llm_provider_3_id@": {
-			"name": "@opencode_custom_llm_provider_3_name@",
+		"opencode_custom_llm_provider_3_id": {
+			"name": "opencode_custom_llm_provider_3_name",
 			"npm": "@ai-sdk/openai-compatible",
 			"options": {
-				"baseURL": "@opencode_custom_llm_provider_3_base_url@"
+				"baseURL": "opencode_custom_llm_provider_3_base_url"
 			},
 			"models": {
-				"@opencode_custom_llm_provider_3_model_1_id@": {
-					"modelID": "@opencode_custom_llm_provider_3_model_1_id@",
-					"name": "@opencode_custom_llm_provider_3_model_1_name@",
+				"opencode_custom_llm_provider_3_model_1_id": {
+					"modelID": "opencode_custom_llm_provider_3_model_1_id",
+					"name": "opencode_custom_llm_provider_3_model_1_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_3_model_1_limit_context@,
-						"output": @opencode_custom_llm_provider_3_model_1_limit_output@
+						"context": opencode_custom_llm_provider_3_model_1_limit_context,
+						"output": opencode_custom_llm_provider_3_model_1_limit_output
 					}
 				},
-				"@opencode_custom_llm_provider_3_model_2_id@": {
-					"modelID": "@opencode_custom_llm_provider_3_model_2_id@",
-					"name": "@opencode_custom_llm_provider_3_model_2_name@",
+				"opencode_custom_llm_provider_3_model_2_id": {
+					"modelID": "opencode_custom_llm_provider_3_model_2_id",
+					"name": "opencode_custom_llm_provider_3_model_2_name",
 					"limit": {
-						"context": @opencode_custom_llm_provider_3_model_2_limit_context@,
-						"output": @opencode_custom_llm_provider_3_model_2_limit_output@
+						"context": opencode_custom_llm_provider_3_model_2_limit_context,
+						"output": opencode_custom_llm_provider_3_model_2_limit_output
 					}
 				},
-				"@opencode_custom_llm_provider_3_model_3_id@": {
-					"modelID": "@opencode_custom_llm_provider_3_model_3_id@",
-					"name": "@opencode_custom_llm_provider_3_model_3_name@",
+				"opencode_custom_llm_provider_3_model_3_id": {
+					"modelID": "opencode_custom_llm_provider_3_model_3_id",
+					"name": "opencode_custom_llm_provider_3_model_3_name@",
 					"limit": {
-						"context": @opencode_custom_llm_provider_3_model_3_limit_context@,
-						"output": @opencode_custom_llm_provider_3_model_3_limit_output@
+						"context": opencode_custom_llm_provider_3_model_3_limit_context,
+						"output": opencode_custom_llm_provider_3_model_3_limit_output
 					}
 				}
 			}
 		}
 	},
 	"server": {
-		"port": @opencode_server_port@,
-		"hostname": "@opencode_server_hostname@",
+		"port": opencode_server_port,
+		"hostname": "opencode_server_hostname",
 		"mdns": true,
 		"mdnsDomain": "opencode.local",
-		"cors": @opencode_server_cors@
+		"cors": [ "http://domain_1.com" ]
 	},
 	"compaction": {
 		"auto": true,
@@ -688,7 +688,8 @@ echo "=== FINISHED: Create System & Application Configuration Files ==="
 
 echo "=== Create Files For Future nsenter Sessions ==="
 # quoting EOF to prevent Bash expansion
-cat <<'EOF' >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/.bash_profile"
+if [[ ! -f "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.bash_profile" ]];then
+	cat <<'EOF' >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/.bash_profile"
 #!/usr/bin/env bash
 
 echo "Running script: ~/.bash_profile"
@@ -698,10 +699,11 @@ if [ -f "$HOME/.bashrc" ]; then
     . "$HOME/.bashrc"
 fi
 EOF
-
+fi
 
 # NOTE: using unquoted EOF - therefore escape any $ that should not be expanded here 
-cat <<EOF >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/.bashrc"
+if [[ ! -f "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.bashrc" ]];then
+	cat <<EOF >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/.bashrc"
 #!/usr/bin/env bash
 # Set PATH early to call programs like id
 export PATH="$INSIDE_NS_ENV_VAR_PATH"
@@ -740,23 +742,25 @@ shopt -s checkwinsize
 
 cat <<EOF_MSG
 - Start OpenCode CLI: opencode
-- Start OpenCode Web: opencode serve --hostname 0.0.0.0 --port 9000 (match slirp4netns port forwarding)
+- Start OpenCode Web: opencode serve --hostname 0.0.0.0 --port \$OPENCODE_SERVER_PORT (match slirp4netns port forwarding)
 - Buildah: build container image: buildah build
 - Buildah: list container images: buildah images
 - Podman: run container: podman run -it --rm <container_image_id> <program_name_in_image>
 - Podman: list container images using podman: podman images
-- kubectl: kubectl cluster-info (requires ~/.kube/config configured)
-- k9s: 
+- kubectl: get Kubernetes cluster info: kubectl cluster-info (requires ~/.kube/config configured)
+- k9s: connect to and administer Kubernetes cluster: k9s
 EOF_MSG
-
-
 EOF
+fi
 
-cat <<EOF >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/.env"
+if [[ ! -f "$INSIDE_NS_PATH_CONTAINER_USER_HOME/.env" ]];then
+	cat <<EOF >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/.env"
 EOF
+fi
 
 # quoting EOF to prevent Bash expansion
-cat <<'EOF' >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/functions.bash"
+if [[ ! -f "$INSIDE_NS_PATH_CONTAINER_USER_HOME/functions.bash" ]];then
+	cat <<'EOF' >"$INSIDE_NS_PATH_CONTAINER_USER_HOME/functions.bash"
 #!/usr/bin/env bash
 
 get_git_prompt() {
@@ -846,6 +850,7 @@ check_executables() {
 export -f get_git_prompt
 export -f check_executables
 EOF
+fi
 
 echo "=== FINISHED: Create Files For Future nsenter Sessions ==="
 sleep infinity

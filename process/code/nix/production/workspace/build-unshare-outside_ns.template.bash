@@ -27,6 +27,14 @@ fi
 echo "$NAMESPACE: PRIMARY_IFACE: $PRIMARY_IFACE"
 echo "$NAMESPACE: PRIMARY_IP: $PRIMARY_IP"
 
+# Random slirp4netns host forwarding port
+SLIRP4NETNS_PORT_MIN=9500
+SLIRP4NETNS_PORT_MAX=9999
+SLIRP4NETNS_PORT_RANGE=$(( SLIRP4NETNS_PORT_MAX - SLIRP4NETNS_PORT_MIN + 1 ))
+
+# Generate the random number
+SLIRP4NETNS_PORT_1=$(( (RANDOM % SLIRP4NETNS_PORT_RANGE) + SLIRP4NETNS_PORT_MIN ))
+echo "$NAMESPACE: SLIRP4NETNS_PORT = $SLIRP4NETNS_PORT"
 echo "*************************************************************************"
 
 UNSHARE_LOG_FILE_NAME="$TMP/build-inside_ns-$SRANDOM.log"
@@ -187,8 +195,9 @@ setup_bridge_network() {
 	slirp4netns --version
 
 	# doc on api-socket: https://github.com/rootless-containers/slirp4netns/blob/master/slirp4netns.1.md#api-socket
+	slirp_socket="/tmp/slirp4netns.$SRANDOM.sock"
 	slirp4netns \
-		--api-socket="$TMP/slirp4netns.sock" \
+		--api-socket="$slirp_socket" \
 		--configure \
 		--mtu=65520 \
 		--disable-host-loopback \
@@ -201,11 +210,11 @@ setup_bridge_network() {
 
 	# NOTE: to change values for variables within '@', edit flake.nix that uses this template script
 	read -r -d '' JSON_COMMAND << JSON
-	{ "execute": "add_hostfwd", "arguments": { "proto": "tcp", "host_addr":  "@slirp4netns_port_forward_host_addr@", "host_port":  @slirp4netns_port_forward_host_port@, "guest_addr": "10.0.2.100", "guest_port": @slirp4netns_port_forward_guest_port@ }}
+	{ "execute": "add_hostfwd", "arguments": { "proto": "tcp", "host_addr":  "@slirp4netns_port_forward_host_addr@", "host_port":  $SLIRP4NETNS_PORT_1, "guest_addr": "10.0.2.100", "guest_port": $SLIRP4NETNS_PORT_1 }}
 JSON
 	
 	# Format: add_hostfwd:proto:host_addr:host_port:guest_addr:guest_port
-	echo -n "$JSON_COMMAND" | nc -U "$TMP/slirp4netns.sock"
+	echo -n "$JSON_COMMAND" | nc -U "$slirp_socket"
 	echo "=== FINISHED: Setup Bridge Network For unshare Namespace ==="
 }
 
@@ -242,7 +251,8 @@ wait_for_ready_signal
 
 # NOTE: Need the Nix store path of "@startShellScriptShellWrapper_nixStorePath@/bin/@startShellScriptFileName@" bind mounted within container
 # NOTE: nsenter starting bash process inherits a direct copy of host shell environment variables
-# NOTE: exporting TERM to pass it through nsenter to the called script
+# NOTE: exporting SLIRP4NETNS_PORT to pass it through nsenter to the called script
+export SLIRP4NETNS_PORT_1
 nsenter \
 	--keep-caps \
 	--user \

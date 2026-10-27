@@ -401,7 +401,8 @@
     startShellScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
       src = ./process/code/nix/production/workspace/start-unshare-shell.template.bash;
       replacements = {
-        # nothing for now
+        # opencode_server_hostname="0.0.0.0";
+        # opencode_server_port=9000;
       };
 
       # Set executable permission
@@ -421,55 +422,55 @@
         fuse_overlayfs_nixStorePath = pkgs.fuse-overlayfs;
         cacert_nixStorePath = pkgs.cacert;
         startShellScriptShellWrapper_nixStorePath = startShellScriptShellWrapper_LinuxNixOs;
-        opencode_server_hostname="0.0.0.0";
-        opencode_shell="pkgs.bashInteractive/bin/bash";
-        opencode_server_port=9000;
-        opencode_server_cors="[ \"http://localhost\" ]";
-        opencode_custom_llm_provider_1_id="local.strata";
-        opencode_custom_llm_provider_1_name="local-strata";
-        opencode_custom_llm_provider_1_base_url="p1_url";
-        opencode_custom_llm_provider_1_model_1_id="qwen-3.8.fn";
-        opencode_custom_llm_provider_1_model_1_name="qwen3.8-flash-next-iq3_s";
-        opencode_custom_llm_provider_1_model_1_limit_context=262144;
-        opencode_custom_llm_provider_1_model_1_limit_output=32768;
-        opencode_custom_llm_provider_1_model_2_id="p1_m2_id";
-        opencode_custom_llm_provider_1_model_2_name="p1_m2_name";
-        opencode_custom_llm_provider_1_model_2_limit_context=32768;
-        opencode_custom_llm_provider_1_model_2_limit_output=16384;
-        opencode_custom_llm_provider_1_model_3_id="p1_m3_id";
-        opencode_custom_llm_provider_1_model_3_name="p1_m3_name";
-        opencode_custom_llm_provider_1_model_3_limit_context=32768;
-        opencode_custom_llm_provider_1_model_3_limit_output=16384;
-        opencode_custom_llm_provider_2_id="local.llama.cpp";
-        opencode_custom_llm_provider_2_name="local-llama-cpp";
-        opencode_custom_llm_provider_2_base_url="p2_url";
-        opencode_custom_llm_provider_2_model_1_id="qwen-3-embedding-0.6b";
-        opencode_custom_llm_provider_2_model_1_name="Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0";
-        opencode_custom_llm_provider_2_model_1_limit_context=32768;
-        opencode_custom_llm_provider_2_model_1_limit_output=16384;
-        opencode_custom_llm_provider_2_model_2_id="p2_m2_id";
-        opencode_custom_llm_provider_2_model_2_name="p2_m2_name";
-        opencode_custom_llm_provider_2_model_2_limit_context=32768;
-        opencode_custom_llm_provider_2_model_2_limit_output=16384;
-        opencode_custom_llm_provider_2_model_3_id="p2_m3_id";
-        opencode_custom_llm_provider_2_model_3_name="p2_m3_name";
-        opencode_custom_llm_provider_2_model_3_limit_context=32768;
-        opencode_custom_llm_provider_2_model_3_limit_output=16384;
-        opencode_custom_llm_provider_3_id="local.ollama";
-        opencode_custom_llm_provider_3_name="local-ollama";
-        opencode_custom_llm_provider_3_base_url="p3_url";
-        opencode_custom_llm_provider_3_model_1_id="qwen-2.5-coder-7b";
-        opencode_custom_llm_provider_3_model_1_name="qwen-2.5-coder:7b";
-        opencode_custom_llm_provider_3_model_1_limit_context=32768;
-        opencode_custom_llm_provider_3_model_1_limit_output=16384;
-        opencode_custom_llm_provider_3_model_2_id="p3_m2_id";
-        opencode_custom_llm_provider_3_model_2_name="p3_m2_name";
-        opencode_custom_llm_provider_3_model_2_limit_context=32768;
-        opencode_custom_llm_provider_3_model_2_limit_output=16384;
-        opencode_custom_llm_provider_3_model_3_id="p3_m3_id";
-        opencode_custom_llm_provider_3_model_3_name="p3_m3_name";
-        opencode_custom_llm_provider_3_model_3_limit_context=32768;
-        opencode_custom_llm_provider_3_model_3_limit_output=16384;
+        opencode_shell="${pkgs.bashInteractive}//bin/bash";
+        # opencode_server_hostname="0.0.0.0";
+        # opencode_server_port=9000;
+        # opencode_server_cors="[ \"http://localhost\" ]";
+        # opencode_custom_llm_provider_1_id="local.strata";
+        # opencode_custom_llm_provider_1_name="local-strata";
+        # opencode_custom_llm_provider_1_base_url="p1_url";
+        # opencode_custom_llm_provider_1_model_1_id="qwen-3.8.fn";
+        # opencode_custom_llm_provider_1_model_1_name="qwen3.8-flash-next-iq3_s";
+        # opencode_custom_llm_provider_1_model_1_limit_context=262144;
+        # opencode_custom_llm_provider_1_model_1_limit_output=32768;
+        # opencode_custom_llm_provider_1_model_2_id="p1_m2_id";
+        # opencode_custom_llm_provider_1_model_2_name="p1_m2_name";
+        # opencode_custom_llm_provider_1_model_2_limit_context=32768;
+        # opencode_custom_llm_provider_1_model_2_limit_output=16384;
+        # opencode_custom_llm_provider_1_model_3_id="p1_m3_id";
+        # opencode_custom_llm_provider_1_model_3_name="p1_m3_name";
+        # opencode_custom_llm_provider_1_model_3_limit_context=32768;
+        # opencode_custom_llm_provider_1_model_3_limit_output=16384;
+        # opencode_custom_llm_provider_2_id="local.llama.cpp";
+        # opencode_custom_llm_provider_2_name="local-llama-cpp";
+        # opencode_custom_llm_provider_2_base_url="p2_url";
+        # opencode_custom_llm_provider_2_model_1_id="qwen-3-embedding-0.6b";
+        # opencode_custom_llm_provider_2_model_1_name="Qwen/Qwen3-Embedding-0.6B-GGUF:Q8_0";
+        # opencode_custom_llm_provider_2_model_1_limit_context=32768;
+        # opencode_custom_llm_provider_2_model_1_limit_output=16384;
+        # opencode_custom_llm_provider_2_model_2_id="p2_m2_id";
+        # opencode_custom_llm_provider_2_model_2_name="p2_m2_name";
+        # opencode_custom_llm_provider_2_model_2_limit_context=32768;
+        # opencode_custom_llm_provider_2_model_2_limit_output=16384;
+        # opencode_custom_llm_provider_2_model_3_id="p2_m3_id";
+        # opencode_custom_llm_provider_2_model_3_name="p2_m3_name";
+        # opencode_custom_llm_provider_2_model_3_limit_context=32768;
+        # opencode_custom_llm_provider_2_model_3_limit_output=16384;
+        # opencode_custom_llm_provider_3_id="local.ollama";
+        # opencode_custom_llm_provider_3_name="local-ollama";
+        # opencode_custom_llm_provider_3_base_url="p3_url";
+        # opencode_custom_llm_provider_3_model_1_id="qwen-2.5-coder-7b";
+        # opencode_custom_llm_provider_3_model_1_name="qwen-2.5-coder:7b";
+        # opencode_custom_llm_provider_3_model_1_limit_context=32768;
+        # opencode_custom_llm_provider_3_model_1_limit_output=16384;
+        # opencode_custom_llm_provider_3_model_2_id="p3_m2_id";
+        # opencode_custom_llm_provider_3_model_2_name="p3_m2_name";
+        # opencode_custom_llm_provider_3_model_2_limit_context=32768;
+        # opencode_custom_llm_provider_3_model_2_limit_output=16384;
+        # opencode_custom_llm_provider_3_model_3_id="p3_m3_id";
+        # opencode_custom_llm_provider_3_model_3_name="p3_m3_name";
+        # opencode_custom_llm_provider_3_model_3_limit_context=32768;
+        # opencode_custom_llm_provider_3_model_3_limit_output=16384;
       };
 
       # Set executable permission
@@ -488,8 +489,6 @@
         # NOTE: slirp4netns can only bind specifc ip address to either outbound-addr or port-forward-host-addr
         # NOTE: use the IP address of the machine running unshare not VS Code machine IP address
         slirp4netns_port_forward_host_addr="0.0.0.0";
-        slirp4netns_port_forward_host_port=9000;
-        slirp4netns_port_forward_guest_port=9000;
       };
 
       # Set executable permission
@@ -511,180 +510,7 @@
   # Create a closure path containing the store paths of ALL dependencies
   agentClosureLinux = pkgs.closureInfo { rootPaths = agentTools_Linux; };
 
-  # Build a GNU Bash script that provisions the bwrap layers and spawns an interactive containerized bash
-  bwrapShellWrapperLinux = pkgs.writeShellScriptBin "containerized-agent-linux" ''
-    set -eo pipefail
-
-    # Default script parameter values
-    MODE="server"
-    DEBUG=false
-
-    # Display usage helper
-    usage() {
-      cat <<EOF
-    Usage: $(basename "$0") [OPTIONS]
-
-    Options:
-      --mode MODE            "server" (default) or "shell"
-      --debug                Prints debug messages
-      --help                 Display this help message
-    EOF
-      exit 0
-    }
-
-    # Parse named parameters
-    while [[ $# -gt 0 ]]; do
-      case "$1" in
-        --mode)
-          MODE="''${2,,}"
-          shift 2
-          ;;
-        --debug)
-          DEBUG=true
-          ;;
-        --help)
-          usage
-          ;;
-        *)
-          echo "Error: Unknown argument '$1'" >&2
-          echo "Use --help for usage details." >&2
-          exit 1
-          ;;
-      esac
-    done
-
-    
-    # Evaluate the list and bakes a standard space-separated Bash array definition right here
-    mapfile -t NIX_STORE_PATHS < "${agentClosureLinux}/store-paths"
-
-    # Build the bwrap execution command
-    BWRAP_ARGS=(
-      --die-with-parent
-      --clearenv                                 # Strip malicious host environment variables
-      --unshare-all                              # Unshare IPC, PID, User, UTS, and Cgroup namespaces
-      --share-net                                # Safely allow network traffic for LLM API calls
-      
-      # Setup core filesystem structural nodes
-      --proc /proc
-      --dev /dev
-      --tmpfs /run
-      --tmpfs /tmp
-      --tmpfs /nix/store
-      --dir /bin
-      --ro-bind /etc/resolv.conf /etc/resolv.conf
-      --ro-bind /etc/ssl/certs /etc/ssl/certs
-      --setenv TERM "''${TERM:-xterm-256color}"
-      --setenv TEMP "/tmp"
-      --setenv TEMPDIR "/tmp"
-      --setenv TMP "/tmp"
-      --setenv TMPDIR "/tmp"
-
-      # Container user
-      --dir /home/app_runner
-      --setenv HOME "/home/app_runner"
-      
-      # Mount our isolated workspace explicitly as Read/Write
-      --dir /workspace
-      --ro-bind ./.opencode /workspace/.opencode
-      --bind ./.git /workspace/.git
-      --bind ./process /workspace/process
-      --bind ./product /workspace/product
-      --bind ./external /workspace/external
-      --chdir /workspace
-    )
-
-    # Iteratively mount the exact Nix Store dependencies required
-    for path in "''${NIX_STORE_PATHS[@]}"; do
-      BWRAP_ARGS+=(--ro-bind "$path" "$path")
-    done
-
-    # Symlink our isolated bash into the container's virtual environment
-    BWRAP_ARGS+=(--symlink "${pkgs.bashInteractive}/bin/bash" /bin/bash)
-    BWRAP_ARGS+=(--symlink "${pkgs.bashInteractive}/bin/bash" /bin/sh)
-
-    # Set a clear prompt indicator and ensure the tools are injected into the agent's PATH
-    CONTAINER_PATH="${pkgs.lib.makeBinPath agentTools_Linux}:/bin"
-    BWRAP_ARGS+=(--setenv PATH "$CONTAINER_PATH")
-
-    # DEBUG printing PATH
-    [ "$DEBUG" = "true" ] && printf "CONTAINER_PATH env var paths:\n"
-    [ "$DEBUG" = "true" ] && printf "\t%b\n" "''${CONTAINER_PATH//:/\\n\\t}"
-
-    # Shell prompt
-    CONTAINER_PS1="\[\e[0;36m\][🤖 container]\[\e[38;5;200m\]\w\n\[\e[0;33m\]\$ "
-    BWRAP_ARGS+=(--setenv PS1 "$CONTAINER_PS1")
-
-    ############################################################################
-    # Get all dependencies for OpenCode
-    ############################################################################
-
-    TARGET_BIN="${zm_opencode_linux}/bin/opencode"
-    mapfile -t TARGET_BIN_NIX_STORE_PATHS < <(ldd "$TARGET_BIN" 2>/dev/null | \
-      grep -o '/nix/store/[^/]*' | \
-      sort -u)  
-
-    LINKER_STORE_PATH=$(readlink -f /lib64/ld-linux-x86-64.so.2 | grep -o '/nix/store/[^/]*')
-
-    # DEBUG printing bwrap args
-    [ "$DEBUG" = "true" ] && echo "LINKER_STORE_PATH = $LINKER_STORE_PATH"
-
-    TARGET_BIN_NIX_STORE_PATHS+=("$LINKER_STORE_PATH")
-
-    TARGET_BIN_BWRAP_ARGS=()
-    for path in ''${TARGET_BIN_NIX_STORE_PATHS[@]}; do
-      # DEBUG printing bwrap args
-      [ "$DEBUG" = "true" ] && echo "TARGET_BIN_NIX_STORE_PATHS item: $path"
-
-      TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$path" "$path")
-    done
-
-    if [ -n "''${NIX_LD:-}" ]; then
-      # DEBUG printing bwrap args
-      [ "$DEBUG" = "true" ] && echo "NIX_LD is pointing to: $NIX_LD"
-      
-      # Extract the parent Nix store directory of the fallback linker
-      NIX_LD_DIR=$(readlink "$NIX_LD" | grep -o '/nix/store/[^/]*')
-      
-      # Append this directory to your Bubblewrap mount arguments array
-      TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$NIX_LD_DIR" "$NIX_LD_DIR")
-    fi
-
-    # 7. Also, parse and bind everything inside NIX_LD_LIBRARY_PATH
-    if [ -n "''${NIX_LD_LIBRARY_PATH:-}" ]; then
-      # Split the colon-separated paths and bind each folder
-      IFS=':' read -ra PATHS <<< "$NIX_LD_LIBRARY_PATH"
-      for p in "''${PATHS[@]}"; do
-        if [ -d "$p" ]; then
-          TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "$p" "$p")
-        fi
-      done
-    fi
-
-    TARGET_BIN_BWRAP_ARGS+=("--ro-bind" "/lib64" "/lib64")
-    TARGET_BIN_BWRAP_ARGS+=("--setenv" "LD_LIBRARY_PATH" "$LD_LIBRARY_PATH")
-
-    # DEBUG printing bwrap args
-    [ "$DEBUG" = "true" ] && echo "TARGET_BIN_BWRAP_ARGS = "
-    [ "$DEBUG" = "true" ] && printf "\t%s\n" "''${TARGET_BIN_BWRAP_ARGS[@]}"
-
-    ############################################################################
-
-    # DEBUG printing bwrap args
-    [ "$DEBUG" = "true" ] && echo "BWRAP_ARGS = "
-    [ "$DEBUG" = "true" ] && printf "\t%s\n" "''${BWRAP_ARGS[@]}"
-
-    if [[ "$MODE" == "server" ]]; then
-      echo "🚀 Launching application"
-      echo "📦 Starting Bubblewrap container"
-      ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" opencode serve
-    elif [[ "$MODE" == "shell" ]]; then
-      echo "🚀 Launching shell"
-      echo "📦 Starting Bubblewrap container"
-      ${pkgs.bubblewrap}/bin/bwrap "''${BWRAP_ARGS[@]}" "''${TARGET_BIN_BWRAP_ARGS[@]}" "${pkgs.bashInteractive}/bin/bash"
-    else
-      echo "Unexpected MODE '$MODE'"
-    fi
-  '';
+  
 
   in {
     v0_1_0 = {
@@ -708,6 +534,7 @@
                 echo "🔐 Initializing isolated AI workspace..."
                 exec ${buildOutsideNamespaceEnvScriptShellWrapper_LinuxNixOs}/bin/${buildOutsideNamespaceEnvScriptFileName_LinuxNixOs} \
                   --internal-env-script ${buildInsideNamespaceEnvScriptShellWrapper_LinuxNixOs}/bin/${buildInsideNamespaceEnvScriptFileName_LinuxNixOs} \
+                  --start-shell-script ${startShellScriptShellWrapper_LinuxNixOs}/bin/${startShellScriptFileName_LinuxNixOs} \
                   --mode server
               '';
             };
@@ -718,7 +545,8 @@
               name = "containerized-opencode-linux-shell";
               shellHook = ''
                 echo "🔐 Initializing isolated AI workspace..."
-                exec ${bwrapShellWrapperLinux}/bin/containerized-agent-linux --mode shell
+                echo "not implemented"
+                exit 1
               '';
             };
 
@@ -726,7 +554,8 @@
               name = "containerized-opencode-linux-server";
               shellHook = ''
                 echo "🔐 Initializing isolated AI workspace..."
-                exec ${bwrapShellWrapperLinux}/bin/containerized-agent-linux --mode server
+                echo "not implemented"
+                exit 1
               '';
             };
           };

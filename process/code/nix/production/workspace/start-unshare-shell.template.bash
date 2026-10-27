@@ -65,9 +65,10 @@ if [[ "$MODE" == "server" ]]; then
 		TERM="$REAL_TERM" \
 		LINES="$REAL_LINES" \
 		COLUMNS="$REAL_COLUMNS" \
+		OPENCODE_SERVER_PORT="$SLIRP4NETNS_PORT_1" \
 		bash \
 		--rcfile /home/root/.bashrc \
-		-c "opencode serve"
+		-c "opencode serve --hostname "0.0.0.0" --port $SLIRP4NETNS_PORT_1"
 
 elif [[ "$MODE" == "shell" ]]; then
 	echo "🚀 Launching shell"
@@ -76,6 +77,7 @@ elif [[ "$MODE" == "shell" ]]; then
 		TERM="$REAL_TERM" \
 		LINES="$REAL_LINES" \
 		COLUMNS="$REAL_COLUMNS" \
+		OPENCODE_SERVER_PORT="$SLIRP4NETNS_PORT_1" \
 		bash \
 		--rcfile /home/root/.bashrc
 
