@@ -34,7 +34,7 @@ SLIRP4NETNS_PORT_RANGE=$(( SLIRP4NETNS_PORT_MAX - SLIRP4NETNS_PORT_MIN + 1 ))
 
 # Generate the random number
 SLIRP4NETNS_PORT_1=$(( (RANDOM % SLIRP4NETNS_PORT_RANGE) + SLIRP4NETNS_PORT_MIN ))
-echo "$NAMESPACE: SLIRP4NETNS_PORT = $SLIRP4NETNS_PORT"
+echo "$NAMESPACE: SLIRP4NETNS_PORT = $SLIRP4NETNS_PORT_1"
 echo "*************************************************************************"
 
 UNSHARE_LOG_FILE_NAME="$TMP/build-inside_ns-$SRANDOM.log"
