@@ -556,19 +556,16 @@ if [[ ! -f "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc" ]]; then
 {
 	// project workspace-level OpenCode configuration
 	"\$schema": "https://opencode.ai/config.json",
-	"disableBuiltInProviders": true,
-	"disabled_providers": [],
-	"enabled_providers": [
-		"opencode_custom_llm_provider_1_id",
-		"opencode_custom_llm_provider_2_id",
-		"opencode_custom_llm_provider_3_id"
-	],
-	"provider": {
+	"providers": {
 		"opencode_custom_llm_provider_1_id": {
 			"name": "opencode_custom_llm_provider_1_name",
-			"npm": "@ai-sdk/openai-compatible",
-			"options": {
+			"package": "@ai-sdk/openai-compatible",
+			"settings": {
+				"timeout": false,
 				"baseURL": "opencode_custom_llm_provider_1_base_url"
+			},
+			"headers": {},
+			"body": {
 			},
 			"models": {
 				"opencode_custom_llm_provider_1_model_1_id": {
@@ -599,10 +596,13 @@ if [[ ! -f "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc" ]]; then
 		},
 		"opencode_custom_llm_provider_2_id": {
 			"name": "opencode_custom_llm_provider_2_name",
-			"npm": "@ai-sdk/openai-compatible",
-			"options": {
+			"package": "@ai-sdk/openai-compatible",
+			"settings": {
+				"timeout": false,
 				"baseURL": "opencode_custom_llm_provider_2_base_url"
 			},
+			"headers": {},
+			"body": {},
 			"models": {
 				"opencode_custom_llm_provider_2_model_1_id": {
 					"modelID": "opencode_custom_llm_provider_2_model_1_id",
@@ -632,10 +632,13 @@ if [[ ! -f "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc" ]]; then
 		},
 		"opencode_custom_llm_provider_3_id": {
 			"name": "opencode_custom_llm_provider_3_name",
-			"npm": "@ai-sdk/openai-compatible",
-			"options": {
+			"package": "@ai-sdk/openai-compatible",
+			"settings": {
+				"timeout": false,
 				"baseURL": "opencode_custom_llm_provider_3_base_url"
 			},
+			"headers": {},
+			"body": {},
 			"models": {
 				"opencode_custom_llm_provider_3_model_1_id": {
 					"modelID": "opencode_custom_llm_provider_3_model_1_id",
@@ -664,17 +667,9 @@ if [[ ! -f "$INSIDE_NS_PATH_WORKSPACE/.opencode/opencode.jsonc" ]]; then
 			}
 		}
 	},
-	"server": {
-		"port": opencode_server_port,
-		"hostname": "opencode_server_hostname",
-		"mdns": true,
-		"mdnsDomain": "opencode.local",
-		"cors": [ "http://domain_1.com" ]
-	},
 	"compaction": {
 		"auto": true,
-		"keep": { "tokens": 24000 },
-		"buffer": 16384,
+		"buffer": 16384
 	},
 	"shell": "@opencode_shell@"
 }

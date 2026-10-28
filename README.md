@@ -48,3 +48,7 @@ software for the AI agent harness to use.
   - Access container user home directory and edit contents
   - Persist container images pulled or created
   - Share downloaded files between host namespace and container namespace
+
+
+## TODOs:
+- update init_shell.ps1 script to updated process/code directory
