@@ -395,7 +395,7 @@
     ###############################################################################
     # NixOS-Native Linux ELF
     ###############################################################################
-    zm_opencode_linux_nixos = zm_opencode_repo.v2_0_26.machine_code.x86_64.linux_nixos.gnu_libc;
+    zm_opencode_linux_nixos = zm_opencode_repo.v2_2_0.machine_code.x86_64.linux_nixos.gnu_libc;
 
     # Define the collection of tool derivations the AI Agent is allowed to use
     agentTools_LinuxNixOs = agentTools_Selected ++
@@ -507,7 +507,7 @@
   ###############################################################################
   # Traditional Linux ELF & nix-ld Shimmed
   ###############################################################################
-  zm_opencode_linux = zm_opencode_repo.v2_0_26.machine_code.x86_64.linux.gnu_libc;
+  zm_opencode_linux = zm_opencode_repo.v2_2_0.machine_code.x86_64.linux.gnu_libc;
   
   # Define the collection of tool derivations the AI Agent is allowed to use
   agentTools_Linux = agentTools_Selected ++
