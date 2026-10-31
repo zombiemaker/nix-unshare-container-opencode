@@ -1,30 +1,35 @@
 #!/usr/bin/env pwsh
 Push-Location
 Set-Location $PSScriptRoot
-$env:VSC_WORKSPACE_ROOT_PATH = $PSScriptRoot
-$env:TEMP = "$env:VSC_WORKSPACE_ROOT_PATH/.temp"
-$env:TEMPDIR = "$env:VSC_WORKSPACE_ROOT_PATH/.temp"
-$env:TMP = "$env:VSC_WORKSPACE_ROOT_PATH/.temp"
-$env:TMPDIR = "$env:VSC_WORKSPACE_ROOT_PATH/.temp"
+$env:WORKSPACE_ROOT_PATH = $PSScriptRoot
+$env:PSModulePath = "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules" +
+    [System.IO.Path]::PathSeparator + "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-windows/modules" +
+    [System.IO.Path]::PathSeparator + "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules" +
+    [System.IO.Path]::PathSeparator + "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-windows/modules" +
+    [System.IO.Path]::PathSeparator + "$($env:PSModulePath)"
+$env:TEMP = "$env:WORKSPACE_ROOT_PATH/.temp"
+$env:TEMPDIR = "$env:TEMP"
+$env:TMP = "$env:TEMP"
+$env:TMPDIR = "$env:TEMP"
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/.apps")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/.apps"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/bin")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/bin"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/.apps/bin")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/.apps/bin"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/include")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/include"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/.apps/include")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/.apps/include"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/lib")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/lib"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/.apps/lib")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/.apps/lib"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.opencode")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/.opencode"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/.opencode")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/.opencode"
 }
 
 if (-not (Test-Path "$($env:TEMP)")) {
@@ -39,237 +44,242 @@ if (-not (Test-Path "$($env:TEMP)/downloads")) {
     New-Item -ItemType Directory -Path "$($env:TEMP)/downloads"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/external/releases")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/external/releases"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/external/releases")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/external/releases"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/external/repos")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/external/repos"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/external/repos")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/external/repos"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/nix-standard-linux")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/nix-standard-linux"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/nix-standard-linux/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/nix-standard-linux")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/nix-standard-linux"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/nix-standard-linux/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/modules/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/scripts")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/scripts"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/scripts/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/scripts")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/scripts"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/powershell-core-linux/scripts/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/python-cpython")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/python-cpython"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code/python-cpython/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/code/python-cpython")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/python-cpython"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/code/python-cpython/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/data/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/data"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/data/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/data/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/data"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/data/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/adr")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/adr"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/adr/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/adr")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/adr"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/adr/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/activity_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/activity_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/activity_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/activity_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/activity_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/activity_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/application_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/application_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/application_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/application_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/application_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/application_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_network_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_network_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_network_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_network_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_network_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/computer_network_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/data_storage_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/data_storage_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/data_storage_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/data_storage_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/data_storage_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/data_storage_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/human_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/design_pattern/os_process_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/feature")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/feature"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature_impl")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature_impl"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/feature_impl/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/feature_impl")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/feature_impl"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/feature_impl/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology/products")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology/products"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology/products/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology/products")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology/products"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology/products/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology/standards")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology/standards"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/doc/technology/standards/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology/standards")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology/standards"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/process/doc/technology/standards/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/process/code"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/process/code"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/gnu_bash-standard-linux")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/gnu_bash-standard-linux"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/gnu_bash-standard-linux/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/gnu_bash-standard-linux")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/gnu_bash-standard-linux"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/gnu_bash-standard-linux/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/nix-standard-linux")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/nix-standard-linux"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/nix-standard-linux/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/nix-standard-linux")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/nix-standard-linux"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/nix-standard-linux/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/modules/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/scripts")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/scripts"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/scripts/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/scripts")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/scripts"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/powershell-core-linux/scripts/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/python-cpython")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/python-cpython"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/code/python-cpython/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/code/python-cpython")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/python-cpython"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/code/python-cpython/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/data/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/data"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/data/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/data"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/adr")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/adr"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/adr/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/adr")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/adr"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/adr/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/activity_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/activity_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/activity_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/activity_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/activity_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/activity_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/application_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/application_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/application_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/application_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/application_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/application_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_network_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_network_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_network_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_network_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_network_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/computer_network_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/data_storage_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/data_storage_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/data_storage_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/data_storage_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/data_storage_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/data_storage_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/os_process_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/design_pattern/human_system/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/feature")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/feature"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/feature/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature_impl")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature_impl"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/feature_impl/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/feature_impl")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/feature_impl"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/feature_impl/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology/products")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology/products"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology/products/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology/products")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology/products"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology/products/.emptydir"
 }
 
-if (-not (Test-Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology/standards")) {
-    New-Item -ItemType Directory -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology/standards"
-    New-Item -ItemType File -Path "$($env:VSC_WORKSPACE_ROOT_PATH)/product/doc/technology/standards/.emptydir"
+if (-not (Test-Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology/standards")) {
+    New-Item -ItemType Directory -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology/standards"
+    New-Item -ItemType File -Path "$($env:WORKSPACE_ROOT_PATH)/product/doc/technology/standards/.emptydir"
 }
 
-if (-not (($env:PATH -split [System.IO.Path]::PathSeparator) -contains "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps /bin")) {
-    Write-Host "Adding to PATH: $($env:VSC_WORKSPACE_ROOT_PATH)/.apps/bin"
-    $env:PATH = "$($env:VSC_WORKSPACE_ROOT_PATH)/.apps/bin" + [System.IO.Path]::PathSeparator + "$($env:PATH)"
+if (-not (($env:PATH -split [System.IO.Path]::PathSeparator) -contains "$($env:WORKSPACE_ROOT_PATH)/.apps/bin")) {
+    Write-Host "Adding to PATH: $($env:WORKSPACE_ROOT_PATH)/.apps/bin"
+    $env:PATH = "$($env:WORKSPACE_ROOT_PATH)/.apps/bin" + [System.IO.Path]::PathSeparator + "$($env:PATH)"
+}
+
+if (-not (($env:PATH -split [System.IO.Path]::PathSeparator) -contains "$($env:WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux/production")) {
+    Write-Host "Adding to PATH: $($env:WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux/production"
+    $env:PATH = "$($env:WORKSPACE_ROOT_PATH)/process/code/gnu_bash-standard-linux/production" + [System.IO.Path]::PathSeparator + "$($env:PATH)"
 }
 
 Pop-Location

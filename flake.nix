@@ -403,16 +403,16 @@
 
     agentClosureLinuxNixOs = pkgs.closureInfo { rootPaths = agentTools_LinuxNixOs; };
 
-    startShellScriptFileName_LinuxNixOs = "ai-agent-harness-start-shell-linux_nixos";
-    startShellScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
-      src = ./process/code/nix-standard-linux/production/workspace/start-unshare-shell.template.bash;
+    enterNamespaceEnvShellScriptFileName_LinuxNixOs = "ai-agent-harness-enter-unshare-ns-linux_nixos";
+    enterNamespaceEnvShellScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
+      src = ./process/code/nix-standard-linux/production/workspace/enter-unshare-ns.template.bash;
       replacements = {
         # opencode_server_hostname="0.0.0.0";
         # opencode_server_port=9000;
       };
 
       # Set executable permission
-      name = startShellScriptFileName_LinuxNixOs;
+      name = enterNamespaceEnvShellScriptFileName_LinuxNixOs;
       dir = "bin";
       isExecutable = true;
     };
@@ -427,7 +427,7 @@
         coreutils_nixStorePath = pkgs.coreutils;
         fuse_overlayfs_nixStorePath = pkgs.fuse-overlayfs;
         cacert_nixStorePath = pkgs.cacert;
-        startShellScriptShellWrapper_nixStorePath = startShellScriptShellWrapper_LinuxNixOs;
+        startShellScriptShellWrapper_nixStorePath = enterNamespaceEnvShellScriptShellWrapper_LinuxNixOs;
         opencode_shell="${pkgs.bashInteractive}//bin/bash";
       };
 
@@ -442,8 +442,8 @@
     buildOutsideNamespaceEnvScriptShellWrapper_LinuxNixOs = pkgs.replaceVarsWith {
       src = ./process/code/nix-standard-linux/production/workspace/build-unshare-outside_ns.template.bash;
       replacements = {
-        startShellScriptShellWrapper_nixStorePath = startShellScriptShellWrapper_LinuxNixOs;
-        startShellScriptFileName = startShellScriptFileName_LinuxNixOs;
+        startShellScriptShellWrapper_nixStorePath = enterNamespaceEnvShellScriptShellWrapper_LinuxNixOs;
+        startShellScriptFileName = enterNamespaceEnvShellScriptFileName_LinuxNixOs;
         # NOTE: slirp4netns can only bind specifc ip address to either outbound-addr or port-forward-host-addr
         # NOTE: use the IP address of the machine running unshare not VS Code machine IP address
         slirp4netns_port_forward_host_addr="0.0.0.0";
@@ -454,20 +454,6 @@
       dir = "bin";
       isExecutable = true;
     };
-
-  
-  ###############################################################################
-  # Traditional Linux ELF & nix-ld Shimmed
-  ###############################################################################
-  zm_opencode_linux = zm_opencode_repo.v2_2_0.machine_code.x86_64.linux.gnu_libc;
-  
-  # Define the collection of tool derivations the AI Agent is allowed to use
-  agentTools_Linux = agentTools_Selected ++
-    [ zm_opencode_linux ];
-
-  # Create a closure path containing the store paths of ALL dependencies
-  agentClosureLinux = pkgs.closureInfo { rootPaths = agentTools_Linux; };
-
   
 
   in {
@@ -481,7 +467,7 @@
                 echo "🔐 Initializing isolated AI workspace..."
                 exec ${buildOutsideNamespaceEnvScriptShellWrapper_LinuxNixOs}/bin/${buildOutsideNamespaceEnvScriptFileName_LinuxNixOs} \
                   --internal-env-script ${buildInsideNamespaceEnvScriptShellWrapper_LinuxNixOs}/bin/${buildInsideNamespaceEnvScriptFileName_LinuxNixOs} \
-                  --start-shell-script ${startShellScriptShellWrapper_LinuxNixOs}/bin/${startShellScriptFileName_LinuxNixOs} \
+                  --start-shell-script ${enterNamespaceEnvShellScriptShellWrapper_LinuxNixOs}/bin/${enterNamespaceEnvShellScriptFileName_LinuxNixOs} \
                   --mode shell
               '';
             };
@@ -492,7 +478,7 @@
                 echo "🔐 Initializing isolated AI workspace..."
                 exec ${buildOutsideNamespaceEnvScriptShellWrapper_LinuxNixOs}/bin/${buildOutsideNamespaceEnvScriptFileName_LinuxNixOs} \
                   --internal-env-script ${buildInsideNamespaceEnvScriptShellWrapper_LinuxNixOs}/bin/${buildInsideNamespaceEnvScriptFileName_LinuxNixOs} \
-                  --start-shell-script ${startShellScriptShellWrapper_LinuxNixOs}/bin/${startShellScriptFileName_LinuxNixOs} \
+                  --start-shell-script ${enterNamespaceEnvShellScriptShellWrapper_LinuxNixOs}/bin/${enterNamespaceEnvShellScriptFileName_LinuxNixOs} \
                   --mode server
               '';
             };
