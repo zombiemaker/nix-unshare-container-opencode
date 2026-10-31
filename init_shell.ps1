@@ -299,10 +299,8 @@ Which Nix shell environment:
 0 = None
 1 = latest.shells.x86_64.linux_nixos.shell
 2 = latest.shells.x86_64.linux_nixos.server
-3 = latest.shells.x86_64.linux.shell
-4 = latest.shells.x86_64.linux.server
 "@
-$options = (0, 1, 2, 3, 4)
+$options = (0, 1, 2)
 $default = 0 # Default to 'Yes' (index 0) if the user hits Enter
 
 # Display the prompt and capture the choice index (0 for Yes, 1 for No)
@@ -324,13 +322,13 @@ switch ($choice) {
         nix develop .#latest.shells.x86_64.linux_nixos.server
     }
 
-    3 {
-        Write-Host "Starting Nix shell environment latest.shells.x86_64.linux.shell" -ForegroundColor Green
-        nix develop .#latest.shells.x86_64.linux.shell
-    }
+    # 3 {
+    #     Write-Host "Starting Nix shell environment latest.shells.x86_64.linux.shell" -ForegroundColor Green
+    #     nix develop .#latest.shells.x86_64.linux.shell
+    # }
 
-    4 {
-        Write-Host "Starting Nix shell environment latest.shells.x86_64.linux.server" -ForegroundColor Green
-        nix develop .#latest.shells.x86_64.linux.server
-    }
+    # 4 {
+    #     Write-Host "Starting Nix shell environment latest.shells.x86_64.linux.server" -ForegroundColor Green
+    #     nix develop .#latest.shells.x86_64.linux.server
+    # }
 }
