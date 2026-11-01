@@ -47,8 +47,12 @@ set -euo pipefail
 
 NAMESPACE="NS_0"
 PID=$BASHPID
-BASH_INSTANCE_NAME="Main"
+BASH_INSTANCE_NAME="outside_ns_main"
 script_name="$0"
+
+source ./fn.bash
+get_namespace_id "user" uid_ns
+get_namespace_id "pid" pid_ns
 
 log_msg() {
 	echo "[$NAMESPACE][$PID][$BASH_INSTANCE_NAME] $1"
@@ -60,6 +64,8 @@ log_msg "purpose: to start unshare namespace and setup environment outside of un
 log_msg "script arguments: $@"
 log_msg "current working directory: $PWD"
 log_msg "user name: $(whoami)"
+log_msg "pid ns: $pid_ns"
+log_msg "uid ns: $uid_ns"
 log_msg "PID: $PID"
 log_msg "TMP: $TMP"
 
@@ -128,12 +134,28 @@ log_msg "Preparing background supervisor loop..."
 	# - place assignment within if block of read statement, which blocks (thus already running in new fork process)
 	:	# this forces an immediate process fork by executing a command, which then gets the expected value for PID
 	PID=$BASHPID
-	BASH_INSTANCE_NAME="slirp4netns"
+	BASH_INSTANCE_NAME="outside_ns_slirp4netns"
 	if read -r UNSHARE_CHILD_PID < "$SLIRP4NETNS_UNSHARE_CHILD_PID_FIFO_PATH"; then
         log_msg "Captured Namespace PID: $UNSHARE_CHILD_PID"
         
         # Start slirp4netns and redirect the ready token into the FIFO
-		exec slirp4netns \
+		# exec slirp4netns \
+		# 	--configure \
+		# 	--mtu=65520 \
+		# 	--ready-fd=3 \
+		# 	--disable-host-loopback \
+		# 	--api-socket="$SLIRP4NETNS_API_SOCKET_PATH" \
+		# 	--outbound-addr="$SLIRP4NETNS_HOST_IPV4" \
+		# 	"$UNSHARE_CHILD_PID" \
+		# 	tap0 \
+		# 	3> "$SLIRP4NETNS_READY_FIFO_PATH" \
+		# 	> "$SLIRP4NETNS_LOG_FILE_NAME" 2>&1
+
+		# Open FD 3 in a non-blocking way in order to capture stderr output to log file
+		exec 3<> "$SLIRP4NETNS_READY_FIFO_PATH"
+
+		# Clear stdout/stderr caching instantly to write slirp4netns initialization output to log file
+		exec stdbuf -o0 -e0 slirp4netns \
 			--configure \
 			--mtu=65520 \
 			--ready-fd=3 \
@@ -142,7 +164,6 @@ log_msg "Preparing background supervisor loop..."
 			--outbound-addr="$SLIRP4NETNS_HOST_IPV4" \
 			"$UNSHARE_CHILD_PID" \
 			tap0 \
-			3> "$SLIRP4NETNS_READY_FIFO_PATH" \
 			> "$SLIRP4NETNS_LOG_FILE_NAME" 2>&1
     fi	
 ) &
