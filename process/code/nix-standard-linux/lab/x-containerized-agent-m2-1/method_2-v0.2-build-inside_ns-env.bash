@@ -89,11 +89,6 @@ fi
 
 log_msg "marker 1.3 - tap0 network interface discovered"
 
-# ip link set dev tap0 up
-# ip addr add 10.0.2.100/24 dev tap0
-# ip route add default via 10.0.2.2 dev tap0
-# log_msg "marker 1.4 - tap0 network interface initialized"
-
 # NOTE: This has to be executed after L0_PIDNS_CURRENT_PROCESS_PID has been sent; otherwise, deadlock
 # Wait briefly for the slirp4netns API socket to be created
 until [ -S "$SLIRP4NETNS_API_SOCKET_PATH" ]; do sleep 0.5; done

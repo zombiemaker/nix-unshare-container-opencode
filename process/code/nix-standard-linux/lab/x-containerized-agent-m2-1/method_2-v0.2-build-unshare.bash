@@ -139,6 +139,8 @@ log_msg "Preparing background supervisor loop..."
         log_msg "Captured Namespace PID: $UNSHARE_CHILD_PID"
         
         # Start slirp4netns and redirect the ready token into the FIFO
+
+		# Opens FD 3 in a blocking way, which misses some stderr output
 		# exec slirp4netns \
 		# 	--configure \
 		# 	--mtu=65520 \
